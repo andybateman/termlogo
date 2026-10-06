@@ -272,9 +272,9 @@ class ResizeTests(unittest.TestCase):
                 canvas = resized
         self.assertEqual(canvas.pix, original)
 
-    def test_filled_uses_logo_start_coordinates_after_resize(self):
+    def test_filled_uses_logo_coordinates_after_resize(self):
         it, turtle, display = self.build()
-        it.eval_source('setspeed 0 pu setpos [-10 -10] pd repeat 4 [fd 20 rt 90] pu setpos [0 0]')
+        it.eval_source('setspeed 0 pu setpos [-10 -10] pd')
         original_run = it.run_list
         with patch('termlogo.repl._terminal_size', return_value=os.terminal_size((100, 30))):
 
@@ -284,11 +284,15 @@ class ResizeTests(unittest.TestCase):
                 return result
 
             with patch.object(it, 'run_list', side_effect=run_and_resize):
-                it.eval_source('filled "red [pu fd 5]')
+                it.eval_source('filled "red [repeat 4 [fd 20 rt 90]]')
+        self.assertEqual(display.canvas.cols, 100)
         self.assertIsNone(display.canvas.pix[0][0])
         px, py = display.canvas.to_pixel(0, 0)
         self.assertEqual(display.canvas.pix[py][px], (255, 0, 0))
-        self.assertEqual(turtle.y, 5)
+        px, py = display.canvas.to_pixel(-10, 0)
+        self.assertEqual(display.canvas.pix[py][px], (255, 255, 255))
+        self.assertAlmostEqual(turtle.x, -10)
+        self.assertAlmostEqual(turtle.y, -10)
 
 
 class HistoryTests(unittest.TestCase):

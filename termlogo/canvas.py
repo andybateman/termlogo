@@ -315,6 +315,29 @@ class Canvas:
             stack.extend(((cx + 1, cy), (cx - 1, cy), (cx, cy + 1), (cx, cy - 1)))
         self.dirty = True
 
+    def fill_polygon(self, points, rgb):
+        """Fill the polygon through `points` (Logo coordinates). Where it crosses
+        itself, the even-odd rule decides what is inside."""
+        if self.aa:
+            pts = [self.to_pixel_f(x, y) for x, y in points]
+        else:
+            pts = [
+                (self.origin_x + x * self.scale, self.origin_y - y * self.scale) for x, y in points
+            ]
+        crossings = {}
+        for (x0, y0), (x1, y1) in zip(pts, pts[1:] + pts[:1], strict=True):
+            if y0 == y1:
+                continue
+            top, bottom = max(0, math.ceil(min(y0, y1))), min(self.height, math.ceil(max(y0, y1)))
+            for y in range(top, bottom):
+                crossings.setdefault(y, []).append(x0 + (y - y0) * (x1 - x0) / (y1 - y0))
+        for y, xs in crossings.items():
+            xs.sort()
+            for left, right in zip(xs[::2], xs[1::2], strict=False):
+                for x in range(max(0, math.ceil(left)), min(self.width - 1, math.floor(right)) + 1):
+                    self._paint(x, y, rgb)
+        self.dirty = True
+
     def label(self, px, py, text, rgb):
         if len(rgb) == 4 and rgb[3] == 0:
             return

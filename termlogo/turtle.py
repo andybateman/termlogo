@@ -33,6 +33,11 @@ class Turtle:
         self._due = self._last = 0.0
         self.strokes = []  # (x0, y0, x1, y1, width) painted with the pen
         self.unrecorded = 0  # erase/reverse segments the stencil cannot use
+        # Filled areas, for the stencil: ('flood', x, y, n) or ('poly', points, n),
+        # where n is how many strokes had been drawn when the fill happened.
+        self.fills = []
+        self._sealed = 0  # strokes that bounded a FILL and so must not grow
+        self.trace = None  # points visited while FILLED runs its instructions
         self.pen_colour_spec = 7  # as set by SETPENCOLOR (number, name or rgb list)
         self.rgb = PALETTE[7]
         self.bg_spec = 0
@@ -135,13 +140,19 @@ class Turtle:
             self._segment(self.x, self.y, nx, ny)
             self.x, self.y = nx, ny
 
+    def forget(self):
+        """Drop everything remembered for stencil export (CLEARSCREEN, CLEAN)."""
+        self.strokes.clear()
+        self.fills.clear()
+        self.unrecorded = self._sealed = 0
+
     def record(self, p, q):
         """Remember a painted stroke as vectors, for stencil export."""
         if self.pen_mode != 'paint':
             self.unrecorded += 1
             return
         w = self.pen_size
-        if self.strokes:
+        if len(self.strokes) > self._sealed:
             x0, y0, x1, y1, lw = self.strokes[-1]
             if lw == w and (x1, y1) == tuple(p) and p != q:
                 ax, ay, bx, by = x1 - x0, y1 - y0, q[0] - p[0], q[1] - p[1]
@@ -158,10 +169,13 @@ class Turtle:
         """Draw between two logo points with the current pen."""
         if self.pen_mode == 'paint' and len(self.rgb) == 4 and self.rgb[3] == 0:
             return
-        c = self.canvas
         self.record(p, q)
+        self._draw(p, q, self.pen_mode)
+
+    def _draw(self, p, q, mode):
+        c = self.canvas
         width = self.pen_size * c.unit
-        if c.aa and self.pen_mode == 'paint':
+        if c.aa and mode == 'paint':
             a, b = c.to_pixel_f(*p), c.to_pixel_f(*q)
             c.aa_line(a[0], a[1], b[0], b[1], self.rgb, max(1.0, width), self._painted)
         else:
@@ -172,7 +186,7 @@ class Turtle:
                 b[0],
                 b[1],
                 self.rgb,
-                self.pen_mode,
+                mode,
                 max(1, int(round(width))),
                 self._painted,
             )
@@ -181,6 +195,31 @@ class Turtle:
         if self.pen_down:
             self._line((x0, y0), (x1, y1))
         self.x, self.y = x1, y1
+        if self.trace is not None:
+            self.trace.append((x1, y1))
+
+    # ---- filling ---------------------------------------------------------
+    def flood(self, tolerance=None):
+        """FILL: flood the canvas from the turtle with the pen colour."""
+        c = self.canvas
+        c.fill(*c.to_pixel(self.x, self.y), self.rgb, tolerance)
+        # (FILL 1) paints the whole canvas and a clear pen paints nothing, so
+        # neither is an area the stencil could cut out.
+        if tolerance != 1 and not (len(self.rgb) == 4 and self.rgb[3] == 0):
+            self.fills.append(('flood', self.x, self.y, len(self.strokes)))
+            self._sealed = len(self.strokes)
+
+    def fill_shape(self, points, rgb):
+        """FILLED: fill the polygon through `points`, then outline it with the pen
+        colour whatever the pen state, as UCBLogo does."""
+        if len(set(points)) < 3:
+            return
+        self.canvas.fill_polygon(points, rgb)
+        with self._painting():
+            for p, q in zip(points, points[1:] + points[:1], strict=True):
+                if p != q:
+                    self._draw(p, q, 'paint')
+        self.fills.append(('poly', tuple(points), len(self.strokes)))
 
     def _wrapped(self, nx, ny):
         hw, hh = self.canvas.half_w, self.canvas.half_h

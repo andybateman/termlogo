@@ -141,8 +141,6 @@ def towards(it, p):
 
 @prim('distance', 1)
 def distance(it, p):
-    import math
-
     x, y = _pair(p, 'distance')
     t = _t(it)
     return _clean(math.hypot(x - t.x, y - t.y))
@@ -335,7 +333,7 @@ def showturtle(it):
 def clearscreen(it):
     t = _t(it)
     t.canvas.clear()
-    t.strokes.clear()
+    t.forget()
     t.home()
     t.finish_frame()
 
@@ -343,7 +341,7 @@ def clearscreen(it):
 @prim('clean', 0)
 def clean(it):
     _t(it).canvas.clear()
-    _t(it).strokes.clear()
+    _t(it).forget()
 
 
 @prim('wrap', 0)
@@ -374,24 +372,27 @@ def fill(it, tolerance=None):
         tolerance = 0.5 if tolerance is None else tolerance
     elif tolerance is not None:
         raise LogoError('FILL tolerance needs --colour-mode terrapin')
-    px, py = t.canvas.to_pixel(t.x, t.y)
-    t.canvas.fill(px, py, t.rgb, tolerance)
+    t.flood(tolerance)
     t.beat()
 
 
 @prim('filled', 2)
 def filled(it, colour, body):
-    """FILLED colour [instructions]: run the instructions, then fill the shape
-    they drew from the turtle's start position."""
+    """FILLED colour [instructions]: run the instructions, then fill the polygon
+    through every point the turtle visited, starting and ending where it began."""
     t = _t(it)
     if not isinstance(body, list):
         raise LogoError(f"filled doesn't like {V.fmt(body)} as input")
-    sx, sy = t.x, t.y
     saved = t.rgb, t.pen_colour_spec
+    outer, t.trace = t.trace, [(t.x, t.y)]
     try:
         it.run_list(body)
-        t.canvas.fill(*t.canvas.to_pixel(sx, sy), t.parse_colour(colour, 'filled', t.alpha))
+        t.fill_shape(t.trace, t.parse_colour(colour, 'filled', t.alpha))
+        if outer is not None:  # a FILLED inside another: its moves count for both
+            outer.extend(t.trace[1:])
+        t.beat()
     finally:
+        t.trace = outer
         t.rgb, t.pen_colour_spec = saved
 
 
@@ -420,13 +421,8 @@ def screenmodes(it):
 def export_stencil(it, path, options=None):
     from . import stencil as S
 
-    t = _t(it)
-    tris, report = S.make_stencil(t.strokes, options)
-    S.write_stl(path, tris)
-    for line in S.describe(report, path):
+    for line in S.export(_t(it), path, options):
         it.write(line + '\n')
-    if t.unrecorded:
-        it.write(f'Warning: {t.unrecorded} erased or reversed segment(s) are not in the stencil\n')
 
 
 @prim('stencil', 1, 1, 2)

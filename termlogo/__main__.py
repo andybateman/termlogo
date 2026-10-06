@@ -197,12 +197,11 @@ def main(argv=None):
             key, _, val = item.partition('=')
             pairs += [key, val]
         try:
-            tris, report = S.make_stencil(turtle.strokes, pairs or None)
-            S.write_stl(a.output, tris)
+            lines = S.export(turtle, a.output, pairs or None)
         except LogoError as e:
             print(f'termlogo: {e.message}', file=sys.stderr)
             return 1
-        for line in S.describe(report, a.output):
+        for line in lines:
             print(line, file=sys.stderr)
     elif a.output:
         canvas.save(a.output)

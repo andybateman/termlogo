@@ -1,7 +1,10 @@
-"""3D-printable stencil export: pen strokes become slots cut through a flat plate.
+"""3D-printable stencil export: pen strokes become slots cut through a flat plate,
+and filled areas (FILL, FILLED) become cut-outs.
 
 Pipeline (standard library only):
   1. Strokes -> signed-distance field on a fine grid (negative inside a slot).
+     Fills are cut into the same field in the order they were drawn: FILL floods
+     the area enclosed by the lines drawn so far, FILLED cuts its polygon.
   2. Islands that would fall out of the plate (the centre of an O) are found and
      tied back with bridges, which are added to the field.
   3. Marching squares traces smooth outlines from the field.
@@ -108,6 +111,87 @@ def _carve(f, nx, ny, p, seg, hw):
             k = j * nx + i
             if d < f[k]:
                 f[k] = d
+
+
+class _Near(dict):
+    """A sparse field for `_carve`: nodes it has not reached are far away."""
+
+    def __missing__(self, key):
+        return FAR
+
+
+def _flood(f, nx, ny, seed):
+    """The solid nodes connected to `seed`, or None if they reach the plate edge
+    (the area was not enclosed, so there is nothing to cut out)."""
+    seen = {seed}
+    stack = [seed]
+    while stack:
+        k = stack.pop()
+        i = k % nx
+        if i == 0 or i == nx - 1 or k < nx or k >= nx * (ny - 1):
+            return None
+        for m in (k - 1, k + 1, k - nx, k + nx):
+            if m not in seen and f[m] >= 0:
+                seen.add(m)
+                stack.append(m)
+    return seen
+
+
+def _cut_polygon(f, cut, nx, ny, p, pts):
+    """Cut the inside of a polygon (even-odd rule) into the field, with true
+    distances beside its edges so the outline comes out straight. Returns the
+    number of nodes inside."""
+    near = _Near()
+    crossings = {}
+    for (x0, y0), (x1, y1) in zip(pts, pts[1:] + pts[:1], strict=True):
+        _carve(near, nx, ny, p, (x0, y0, x1, y1), 0.0)
+        if y0 == y1:
+            continue
+        lo, hi = max(0, math.ceil(min(y0, y1) / p)), min(ny, math.ceil(max(y0, y1) / p))
+        for j in range(lo, hi):
+            y = j * p
+            if (y0 > y) != (y1 > y):
+                crossings.setdefault(j, []).append(x0 + (y - y0) * (x1 - x0) / (y1 - y0))
+    inside = 0
+    for j, xs in crossings.items():
+        xs.sort()
+        for left, right in zip(xs[::2], xs[1::2], strict=False):
+            for i in range(max(0, math.ceil(left / p)), min(nx - 1, math.floor(right / p)) + 1):
+                k = j * nx + i
+                d = -min(near.pop(k, FAR), 2 * p)
+                if d < f[k]:
+                    f[k] = d
+                cut[k] = 1
+                inside += 1
+    for k, d in near.items():  # what is left lies just outside the polygon
+        if d < f[k]:
+            f[k] = d
+    return inside
+
+
+def _cut_fill(f, cut, nx, ny, p, fill, report):
+    """Cut one filled area into the field. `cut` marks the nodes removed by fills."""
+    if fill[0] == 'poly':
+        if _cut_polygon(f, cut, nx, ny, p, fill[1]):
+            report['fills'] += 1
+        return
+    i, j = round(fill[1] / p), round(fill[2] / p)
+    if not (0 < i < nx - 1 and 0 < j < ny - 1):
+        report['open_fills'] += 1
+        return
+    seed = j * nx + i
+    if f[seed] < 0:
+        # On a pen line there is no area to fill; inside an earlier fill, no need.
+        report['line_fills'] += not cut[seed]
+        return
+    region = _flood(f, nx, ny, seed)
+    if region is None:
+        report['open_fills'] += 1
+        return
+    for k in region:
+        f[k] = -p
+        cut[k] = 1
+    report['fills'] += 1
 
 
 # ---- 2. islands and bridges --------------------------------------------------------
@@ -410,13 +494,28 @@ def _extrude(solids, thickness):
     return tris
 
 
-def make_stencil(strokes, options=None):
-    """Build the stencil mesh. Returns (triangles, report)."""
+def make_stencil(strokes, options=None, fills=()):
+    """Build the stencil mesh. Returns (triangles, report).
+
+    `fills` are the turtle's filled areas: ('flood', x, y, n) for FILL at a point
+    and ('poly', points, n) for FILLED, where n is the number of strokes drawn
+    before the fill."""
     opts = parse_options(options) if not isinstance(options, dict) else {**DEFAULTS, **options}
-    if not strokes:
-        raise LogoError('Nothing to export: draw something with the pen down first')
     mm, p = opts['mm'], opts['pitch']
-    report = {'islands': 0, 'bridges': 0, 'unbridged': 0, 'widened': 0, 'specks': 0, 'warnings': []}
+    polys = [pt for fill in fills if fill[0] == 'poly' for pt in fill[1]]
+    if not strokes and not polys:
+        raise LogoError('Nothing to export: draw something with the pen down first')
+    report = {
+        'islands': 0,
+        'bridges': 0,
+        'unbridged': 0,
+        'widened': 0,
+        'specks': 0,
+        'fills': 0,
+        'open_fills': 0,
+        'line_fills': 0,
+        'warnings': [],
+    }
     segs = []
     for x0, y0, x1, y1, w in strokes:
         width = opts['width'] if opts['width'] is not None else w * mm
@@ -428,12 +527,12 @@ def make_stencil(strokes, options=None):
         v
         for s in segs
         for v in (s[0] - s[4] / 2, s[2] - s[4] / 2, s[0] + s[4] / 2, s[2] + s[4] / 2)
-    ]
+    ] + [x * mm for x, _ in polys]
     ys = [
         v
         for s in segs
         for v in (s[1] - s[4] / 2, s[3] - s[4] / 2, s[1] + s[4] / 2, s[3] + s[4] / 2)
-    ]
+    ] + [y * mm for _, y in polys]
     bw, bh = max(xs) - min(xs), max(ys) - min(ys)
     cx, cy = (max(xs) + min(xs)) / 2, (max(ys) + min(ys)) / 2
     if opts['plate']:
@@ -450,8 +549,26 @@ def make_stencil(strokes, options=None):
     if nx * ny > 6_000_000:
         raise LogoError('Plate is too big for this pitch: raise pitch or lower the size')
     f = [FAR] * (nx * ny)
-    for x0, y0, x1, y1, w in segs:
+    # Fills in plate coordinates, each waiting for the strokes drawn before it: a
+    # FILL is bounded only by lines that were already there.
+    pending = deque(
+        sorted(
+            (
+                ('poly', [(x * mm - ox, y * mm - oy) for x, y in fill[1]], fill[2])
+                if fill[0] == 'poly'
+                else ('flood', fill[1] * mm - ox, fill[2] * mm - oy, fill[3])
+                for fill in fills
+            ),
+            key=lambda fill: fill[-1],
+        )
+    )
+    cut = bytearray(nx * ny)
+    for index, (x0, y0, x1, y1, w) in enumerate(segs):
+        while pending and pending[0][-1] <= index:
+            _cut_fill(f, cut, nx, ny, p, pending.popleft(), report)
         _carve(f, nx, ny, p, (x0 - ox, y0 - oy, x1 - ox, y1 - oy), w / 2)
+    for fill in pending:
+        _cut_fill(f, cut, nx, ny, p, fill, report)
     _bridge_islands(f, nx, ny, p, opts, report)
     rings = []
     for ring in _outlines(f, nx, ny, p):
@@ -491,6 +608,14 @@ def make_stencil(strokes, options=None):
             f'{report["specks"]} sliver(s) under {MIN_ISLAND_MM2:g} mm2 '
             'were too small to print and were filled in'
         )
+    if report['open_fills']:
+        report['warnings'].append(
+            f'{report["open_fills"]} FILL(s) were not enclosed by pen lines and were left out'
+        )
+    if report['line_fills']:
+        report['warnings'].append(
+            f'{report["line_fills"]} FILL(s) started on a pen line, so there was no area to cut out'
+        )
     if report['widened']:
         report['warnings'].append(
             f'{report["widened"]} stroke(s) were narrower than '
@@ -499,11 +624,7 @@ def make_stencil(strokes, options=None):
     report.update(
         size=(W, H, opts['thickness']),
         triangles=len(tris),
-        slot_area=W * H
-        - sum(abs(_area(r)) for r in rings if _area(r) < 0) * 0
-        - sum(abs(_area(r)) for r in rings if _area(r) > 0) * 0,
         holes=sum(1 for r in rings if _area(r) < 0),
-        unrecorded=0,
     )
     report['cut_area'] = sum(abs(_area(r)) for r in rings if _area(r) < 0) - sum(
         abs(_area(r)) for r in rings if _area(r) > 0
@@ -558,8 +679,22 @@ def check_mesh(tris, places=5):
 def describe(report, path=None):
     W, H, T = report['size']
     line = f'Stencil {W:.1f} x {H:.1f} x {T:g} mm, {report["triangles"]:,} triangles'
+    if report['fills']:
+        line += f', {report["fills"]} filled area(s) cut out'
     if report['bridges']:
         line += f', {report["bridges"]} bridge(s) across {report["islands"]} island(s)'
     if path:
         line += f' -> {path}'
     return [line] + ['Warning: ' + w for w in report['warnings']]
+
+
+def export(turtle, path, options=None):
+    """Write the turtle's drawing to `path` as a stencil. Returns the lines to report."""
+    tris, report = make_stencil(turtle.strokes, options, turtle.fills)
+    write_stl(path, tris)
+    lines = describe(report, path)
+    if turtle.unrecorded:
+        lines.append(
+            f'Warning: {turtle.unrecorded} erased or reversed segment(s) are not in the stencil'
+        )
+    return lines

@@ -357,6 +357,54 @@ class TurtleTests(unittest.TestCase):
         self.assertEqual(c.pix[cy][cx], (0, 255, 0))
         self.assertIsNone(c.pix[c.to_pixel(30, 30)[1]][c.to_pixel(30, 30)[0]])
 
+    def test_filled_fills_the_polygon_and_keeps_the_outline(self):
+        from termlogo.renderers import make_canvas
+
+        for render in ('braille', 'half', 'kitty'):
+            with self.subTest(render=render):
+                c = make_canvas(render, 60, 20, cell_px=(10, 20))
+                t = Turtle(c)
+                it = Interp(out=lambda s: None)
+                it.attach_turtle(t)
+                it.eval_source('setpc 4 filled 2 [repeat 4 [fd 16 rt 90]]')
+
+                def at(x, y, c=c):
+                    px, py = c.to_pixel(x, y)
+                    return c.pix[py][px]
+
+                self.assertEqual(at(8, 8), (0, 255, 0))
+                self.assertEqual(at(2, 14), (0, 255, 0))
+                for edge in ((0, 8), (16, 8), (8, 16)):
+                    self.assertEqual(at(*edge), (255, 0, 0))
+                self.assertIsNone(at(20, 8))
+                self.assertIsNone(at(-4, 8))
+                self.assertEqual(t.pen_colour_spec, 4)
+
+    def test_filled_counts_pen_up_moves_and_uses_the_even_odd_rule(self):
+        _, _, t, c = run('setpc 4 pu filled 2 [setxy 0 16 setxy 16 16 setxy 16 0]')
+        self.assertEqual(c.pix[c.to_pixel(8, 8)[1]][c.to_pixel(8, 8)[0]], (0, 255, 0))
+        self.assertEqual(c.pix[c.to_pixel(16, 8)[1]][c.to_pixel(16, 8)[0]], (255, 0, 0))
+        self.assertEqual(t.strokes, [])
+        self.assertEqual((t.x, t.y), (16, 0))
+        _, _, _, c = run('pu filled 2 [repeat 5 [fd 40 rt 144]]', size=(100, 30))
+        self.assertIsNone(c.pix[c.to_pixel(19, 14)[1]][c.to_pixel(19, 14)[0]])  # the middle
+        self.assertEqual(c.pix[c.to_pixel(2, 30)[1]][c.to_pixel(2, 30)[0]], (0, 255, 0))
+
+    def test_filled_without_a_shape_changes_nothing(self):
+        for body in ('[]', '[fd 10]', '[fd 10 bk 10]'):
+            with self.subTest(body=body):
+                _, _, t, _ = run('pu filled 2 ' + body)
+                self.assertEqual(t.fills, [])
+
+    def test_nested_filled_counts_inner_moves_in_the_outer_shape(self):
+        _, _, t, c = run(
+            'pu filled 2 [fd 20 rt 90 fd 20 filled 4 [repeat 4 [fd 6 rt 90]] rt 90 fd 20]'
+        )
+        self.assertEqual(c.pix[c.to_pixel(10, 10)[1]][c.to_pixel(10, 10)[0]], (0, 255, 0))
+        self.assertEqual([fill[0] for fill in t.fills], ['poly', 'poly'])
+        self.assertEqual([len(fill[1]) for fill in t.fills], [5, 8])
+        self.assertIsNone(t.trace)
+
     def test_arc_label_dot(self):
         _, _, _, c = run('arc 360 10')
         self.assertTrue(any(p is not None for row in c.pix for p in row))
@@ -782,11 +830,15 @@ class EarcutTests(unittest.TestCase):
 
 
 class StencilTests(unittest.TestCase):
+    SQUARE = 'setpensize 2 repeat 4 [fd 30 rt 90] '
+    # A 30 mm square drawn with a 2 mm pen, to the outside of its rounded corners.
+    SQUARE_AREA = 32 * 32 - (4 - math.pi)
+
     def _make(self, src, options=None, size=(60, 20)):
         from termlogo import stencil as S
 
         _, it, t, _ = run(src, size)
-        tris, rep = S.make_stencil(t.strokes, options)
+        tris, rep = S.make_stencil(t.strokes, options, t.fills)
         return tris, rep, S
 
     def test_straight_slot_is_watertight_with_exact_volume(self):
@@ -891,10 +943,121 @@ class StencilTests(unittest.TestCase):
         tris, rep, S = self._make('setpensize 2 repeat 36 [fd 4 rt 10]', ['pitch', '0.1'])
         self.assertEqual(S.check_mesh(tris)[0], 0)
 
+    def test_fill_cuts_out_the_enclosed_area(self):
+        _, outline, _ = self._make(self.SQUARE)
+        tris, rep, S = self._make(self.SQUARE + 'pu setxy 15 15 pd fill')
+        self.assertEqual((rep['fills'], rep['holes']), (1, 1))
+        self.assertEqual((rep['islands'], rep['bridges']), (0, 0))
+        self.assertEqual(rep['warnings'], [])
+        self.assertAlmostEqual(rep['cut_area'], self.SQUARE_AREA, delta=1)
+        self.assertGreater(rep['cut_area'], 4 * outline['cut_area'])
+        open_edges, volume = S.check_mesh(tris)
+        self.assertEqual(open_edges, 0)
+        W, H, T = rep['size']
+        self.assertAlmostEqual(volume, T * (W * H - self.SQUARE_AREA), delta=T)
+        self.assertIn('1 filled area(s) cut out', S.describe(rep)[0])
+
+    def test_fill_that_is_not_enclosed_or_starts_on_a_line_is_left_out(self):
+        _, outline, _ = self._make(self.SQUARE)
+        for source, message in (
+            ('pu setxy -5 -5 fill', 'not enclosed'),
+            ('pu setxy 500 500 fill', 'not enclosed'),
+            ('fill', 'on a pen line'),
+        ):
+            with self.subTest(source=source):
+                tris, rep, S = self._make(self.SQUARE + source)
+                self.assertEqual(rep['fills'], 0)
+                self.assertAlmostEqual(rep['cut_area'], outline['cut_area'])
+                self.assertEqual(len(rep['warnings']), 1)
+                self.assertIn(message, rep['warnings'][0])
+                self.assertEqual(S.check_mesh(tris)[0], 0)
+
+    def test_filling_the_same_area_twice_is_not_reported(self):
+        _, rep, _ = self._make(self.SQUARE + 'pu setxy 15 15 fill setxy 5 5 fill')
+        self.assertEqual((rep['fills'], rep['warnings']), (1, []))
+
+    def test_fill_is_bounded_only_by_lines_drawn_before_it(self):
+        across = 'pu setxy 0 15 pd seth 90 fd 30 '
+        _, after, _ = self._make(self.SQUARE + 'pu setxy 15 22 fill ' + across)
+        self.assertAlmostEqual(after['cut_area'], self.SQUARE_AREA, delta=1)
+        self.assertEqual(after['islands'], 0)
+        tris, before, S = self._make(self.SQUARE + across + 'pu setxy 15 22 fill')
+        self.assertLess(before['cut_area'], 0.7 * self.SQUARE_AREA)
+        self.assertEqual((before['fills'], before['islands'], before['unbridged']), (1, 1, 0))
+        self.assertGreaterEqual(before['bridges'], 1)
+        self.assertEqual(S.check_mesh(tris)[0], 0)
+
+    def test_a_line_continued_after_a_fill_does_not_divide_the_filled_area(self):
+        source = (
+            self.SQUARE
+            + 'pu setxy 0 10 pd seth 90 fd 5 pu setxy 10 15 fill pu setxy 5 10 pd seth 90 fd 25'
+        )
+        _, it, t, _ = run(source)
+        self.assertEqual(len(t.strokes), 6)
+        _, rep, _ = self._make(source)
+        self.assertEqual(rep['islands'], 0)
+        self.assertAlmostEqual(rep['cut_area'], self.SQUARE_AREA, delta=1)
+
+    def test_island_inside_a_filled_area_is_bridged(self):
+        tris, rep, S = self._make(
+            self.SQUARE + 'pu setxy 10 10 pd repeat 4 [fd 10 rt 90] pu setxy 5 5 fill'
+        )
+        self.assertEqual((rep['fills'], rep['islands'], rep['unbridged']), (1, 1, 0))
+        self.assertGreaterEqual(rep['bridges'], 1)
+        self.assertEqual(S.check_mesh(tris)[0], 0)
+
+    def test_filled_cuts_out_its_polygon_with_or_without_an_outline(self):
+        tris, rep, S = self._make('pu filled 4 [repeat 4 [fd 30 rt 90]]')
+        self.assertEqual((rep['fills'], rep['holes'], rep['islands']), (1, 1, 0))
+        self.assertAlmostEqual(rep['cut_area'], 900, delta=1)
+        self.assertAlmostEqual(rep['size'][0], 46)
+        self.assertAlmostEqual(rep['size'][1], 46)
+        self.assertEqual(S.check_mesh(tris)[0], 0)
+        tris, rep, S = self._make('setpensize 2 filled 4 [repeat 4 [fd 30 rt 90]]')
+        self.assertEqual((rep['fills'], rep['holes'], rep['islands']), (1, 1, 0))
+        self.assertAlmostEqual(rep['cut_area'], self.SQUARE_AREA, delta=1)
+        self.assertEqual(S.check_mesh(tris)[0], 0)
+        tris, rep, S = self._make('pu filled 4 [repeat 3 [fd 40 rt 120]]', ['mirror', 'true'])
+        self.assertAlmostEqual(rep['cut_area'], math.sqrt(3) / 4 * 1600, delta=2)
+        self.assertEqual(S.check_mesh(tris)[0], 0)
+
+    def test_filled_star_keeps_its_middle_as_a_bridged_island(self):
+        tris, rep, S = self._make('setpensize 2 filled 4 [repeat 5 [fd 60 rt 144]]', size=(80, 30))
+        self.assertGreaterEqual(rep['islands'], 1)
+        self.assertEqual(rep['unbridged'], 0)
+        self.assertEqual(S.check_mesh(tris)[0], 0)
+
+    def test_fills_follow_the_mm_option(self):
+        _, rep, _ = self._make(
+            self.SQUARE + 'pu setxy 15 15 fill setxy 40 0 filled 4 [repeat 4 [fd 10 rt 90]]',
+            ['mm', '2'],
+        )
+        self.assertEqual((rep['fills'], rep['warnings']), (2, []))
+        self.assertAlmostEqual(rep['cut_area'], 64 * 64 - 4 * (4 - math.pi) + 400, delta=4)
+
     def test_erased_strokes_are_not_in_the_stencil(self):
         _, it, t, _ = run('setpensize 2 fd 20 pe bk 10')
         self.assertEqual(len(t.strokes), 1)
         self.assertEqual(t.unrecorded, 1)
+
+    def test_cs_and_clean_forget_fills_and_erased_strokes(self):
+        drawing = (
+            'repeat 4 [fd 9 rt 90] pu setxy 4 4 pd fill pe fd 3 ppt '
+            'filled 2 [repeat 3 [fd 9 rt 120]] '
+        )
+        for command in ('cs', 'clean'):
+            with self.subTest(command=command), tempfile.TemporaryDirectory() as d:
+                _, _, t, _ = run(drawing + command)
+                self.assertEqual((t.strokes, t.fills, t.unrecorded), ([], [], 0))
+                text, *_ = run(
+                    drawing
+                    + command
+                    + ' pu home pd setpensize 2 fd 20 stencil "'
+                    + os.path.join(d, 'x')
+                )
+                self.assertIn('Stencil', text)
+                self.assertNotIn('Warning', text)
+                self.assertNotIn('filled area', text)
 
     def test_cs_clean_clear_strokes_and_dots_are_recorded(self):
         _, it, t, _ = run('fd 10 cs')
@@ -931,6 +1094,9 @@ class StencilTests(unittest.TestCase):
             self.assertGreater(os.path.getsize(path), 84)
             text, *_ = run('setpensize 2 fd 20 (stencil "' + path + ' [thickness 2 margin 5])')
             self.assertIn('x 2 mm', text)
+            text, *_ = run(self.SQUARE + 'pu setxy 15 15 fill pe fd 5 stencil "' + path)
+            self.assertIn('1 filled area(s) cut out', text)
+            self.assertIn('Warning: 1 erased or reversed segment(s)', text)
 
     def test_stencil_command_adds_a_missing_stl_extension(self):
         with tempfile.TemporaryDirectory() as d:
@@ -978,6 +1144,31 @@ class StencilTests(unittest.TestCase):
             self.assertEqual(
                 main(['-e', 'pu fd 5', '-o', os.path.join(d, 'x.stl'), '--size', '20x5']), 1
             )
+
+    def test_command_line_stl_export_reports_fills_and_erased_strokes(self):
+        import contextlib
+        import io
+
+        from termlogo.__main__ import main
+
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, 'filled.stl')
+            messages = io.StringIO()
+            with contextlib.redirect_stderr(messages):
+                rc = main(
+                    [
+                        '-e',
+                        self.SQUARE + 'pu setxy 15 15 fill pe fd 5',
+                        '-o',
+                        path,
+                        '--size',
+                        '40x10',
+                    ]
+                )
+            self.assertEqual(rc, 0)
+            self.assertIn('1 filled area(s) cut out', messages.getvalue())
+            self.assertIn('Warning: 1 erased or reversed segment(s)', messages.getvalue())
+            self.assertGreater(os.path.getsize(path), 84)
 
     def test_help_documents_stencil_and_speed(self):
         self.assertIn('Options:', out('help stencil'))
