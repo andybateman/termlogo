@@ -1,0 +1,5 @@
+#!/bin/sh
+# Run termlogo from this project without installing it. Safe to symlink onto PATH.
+self="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$0")"
+here="$(dirname "$(dirname "$self")")"
+exec python3 -c "import sys; sys.path.insert(0, sys.argv.pop(1)); from termlogo.__main__ import main; sys.exit(main())" "$here" "$@"

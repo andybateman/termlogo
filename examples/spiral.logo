@@ -1,0 +1,7 @@
+; Tail-recursive spiral that stops at the edge of the screen
+to spiral :s
+  if :s > 35 [stop]
+  fd :s rt 91
+  spiral :s + 1
+end
+cs setpc 6 spiral 1

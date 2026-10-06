@@ -1,0 +1,12 @@
+; Koch snowflake
+to koch :len :depth
+  if :depth = 0 [fd :len stop]
+  koch :len / 3 :depth - 1 lt 60
+  koch :len / 3 :depth - 1 rt 120
+  koch :len / 3 :depth - 1 lt 60
+  koch :len / 3 :depth - 1
+end
+to snowflake :len :depth
+  repeat 3 [koch :len :depth rt 120]
+end
+cs pu setxy -30 15 pd setpc 3 snowflake 60 3

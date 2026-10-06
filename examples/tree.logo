@@ -1,0 +1,10 @@
+; Recursive binary tree
+to tree :size
+  if :size < 3 [stop]
+  fd :size
+  lt 25 tree :size * 0.7
+  rt 50 tree :size * 0.7
+  lt 25
+  bk :size
+end
+cs pu bk 30 pd setpc 2 tree 28

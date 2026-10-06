@@ -1,0 +1,8 @@
+; Twelve squares rotated into a flower
+to square :s
+  repeat 4 [fd :s rt 90]
+end
+to flower
+  repeat 12 [square 25 rt 30]
+end
+cs setpc 4 flower

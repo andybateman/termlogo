@@ -1,0 +1,19 @@
+; A stencil to print: block letters "OK" over a star.
+; Pen size is the slot width in mm (1 step = 1 mm). Run:
+;   termlogo examples/stencil_demo.logo -o demo.stl
+; Islands (the middle of the O and the star) are bridged automatically.
+
+to letter.o
+  pu setxy 0 0 pd setheading 0
+  repeat 2 [fd 40 rt 90 fd 28 rt 90]
+end
+to letter.k
+  pu setxy 40 0 pd setheading 0 fd 40
+  pu setxy 40 20 pd setheading 45 fd 28
+  pu setxy 40 20 pd setheading 135 fd 28
+end
+to star :s repeat 5 [fd :s rt 144] end
+cs setpensize 3 setpc 7
+letter.o letter.k
+setpensize 1.6
+pu setxy 6 -48 pd seth 72 star 46
