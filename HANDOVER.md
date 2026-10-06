@@ -8,8 +8,9 @@ A Logo interpreter with turtle graphics that runs entirely in the terminal, usin
 ## Current state
 - Version 0.6.0, on `main`, pushed to the private GitHub repository `andybateman/termlogo`.
 - Ruff lint and format are clean and the unit and pseudo-terminal tests pass (as at 2026-10-07; run the commands under "How to pick it up" for the live result).
+- Added on 2026-10-07 (later): nested `FILLED` repaint, arrays, property lists, file streams, `READCHAR`/`KEYP`, `CURSOR`/`SETCURSOR`, `GOTO`/`TAG`, `.MAYBEOUTPUT`, round pens, XOR `PENREVERSE`, `--fit`. Unreleased: the version is still 0.6.0
 - Added on 2026-10-07: keyboard editing of multi-line commands recalled from history, `.stl` added to `STENCIL` names, `FILL` and `FILLED` areas cut out of the stencil, and a repaired `FILLED`.
-- Not yet checked by hand: the new command-pane keys in a real Ghostty window, and the fill cut-outs in a slicer or on the printer. Both are covered only by automated tests so far.
+- Not yet checked by hand: the later additions (item 13), the new command-pane keys in a real Ghostty window, and the fill cut-outs in a slicer or on the printer. Both are covered only by automated tests so far.
 
 ## Decisions made
 | Decision | Why |
@@ -22,6 +23,9 @@ A Logo interpreter with turtle graphics that runs entirely in the terminal, usin
 | An unenclosed `FILL` is left out of the stencil with a warning | On screen the canvas edge can bound a fill; on the plate it would remove everything |
 | Only `STENCIL` adds a missing `.stl` | `SAVEPICT` and `-o` pick the format from the extension |
 | Generated `*.stl` files are git-ignored | They are build output |
+| `SETCURSOR` works inside the REPL's five-row text area and lasts one command | The text area is a scrolling log, not a full text screen. Outside the REPL it does nothing |
+| `--fit N` scales the drawing, not pen sizes | Pen size is in pixels. Scaling it would change stencil widths, which are in millimetres |
+| A Braille cell keeps showing its most common colour | A Braille character has one foreground colour; `half` and `kitty` give per-pixel colour |
 | Repository name `termlogo`, kept private | Both chosen by Andy (2026-10-07) |
 | One `README.md` for GitHub and the Quests project tools, with the `Keywords`, `Status` and date lines inside an HTML comment | GitHub hides comments; `projects.py`, the session hook and the skills still find the lines. Next steps live in this file, not the README |
 
@@ -35,12 +39,12 @@ Low-effort checks first. "Next session" means work for Claude with Andy.
 | 3 | Open `examples/stencil_fill.logo` output in a slicer, then test-print one stencil | Andy | Small, then a print |
 | 4 | Stencil: detect joins too thin to print. A pen-up `FILLED` star leaves its centre held at five points and is not flagged | Next session | Medium |
 | 5 | A newline key that works in every terminal: make Ctrl-J insert a line by clearing `ICRNL`. About 60 test inputs change from `\n` to `\r` | Next session | Medium, mechanical |
-| 6 | Nested `FILLED`: the inner shape is painted first and then covered by the outer one. Decide the intended result, then repaint inner shapes last | Next session | Small |
 | 7 | Stencil extras: text from `LABEL` via a stencil font, rounded plate corners, 3MF output | Next session | Large |
-| 8 | Language gaps: arrays, property lists, `READCHAR` | Next session | Medium |
+| 8 | Language gaps that remain: `DRIBBLE`, directory commands, `EDIT`, text windows beyond `SETCURSOR` | Next session | Medium |
 | 9 | Side-by-side conformance list against UCBLogo | Next session | Medium |
 | 10 | Install route for the MacBook setup: the `termlogo` link in `~/.oh-my-zsh/oh-my-custom/bin/` is not in the setup script | Andy | Small |
 | 11 | Wider Ruff rules (`UP`, `SIM`, `RUF`): roughly 160 style points, none of them bugs (as at 2026-10-07) | Next session | Small |
+| 13 | Try the new REPL features by hand in Ghostty: `READCHAR` and `KEYP` while a program runs, `SETCURSOR`, `--fit 1000` after resizing the window, and the round Braille pen. Then decide on a 0.7.0 release | Andy | Small |
 | 12 | Tag the release (`v0.6.0`) if tags are wanted | Andy | Small |
 
 Can wait: 7, 8, 9 and 11.

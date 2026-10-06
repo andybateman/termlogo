@@ -22,9 +22,10 @@ A Logo interpreter with turtle graphics that runs entirely in the terminal. Pyth
 ./bin/termlogo examples/flower.logo --speed 0 # draw instantly
 ./bin/termlogo --render half         # braille | half | kitty | auto
 ./bin/termlogo --colour-mode terrapin # Terrapin tutorial colours and RGBA
+./bin/termlogo prog.logo --fit 1000  # textbook programs: a 1000x1000 window fits the canvas
 python3 -m unittest discover -s tests
 ```
-Options: `--render`, `--speed 0-10` (default 5; 0 draws instantly), `--colour-mode`/`--color-mode ucblogo|terrapin` (default `ucblogo`), `--stencil-opt KEY=VALUE`, `--size COLSxROWS`, `--scale S` (pixels per turtle step, default 1; use 0.5 for drawings built for a 400x400 screen), `--no-color`/`--no-colour`, `--no-canvas`. REPL: Tab completes names, history is kept in `~/.termlogo_history`, `BYE` or Ctrl-D leaves.
+Options: `--render`, `--speed 0-10` (default 5; 0 draws instantly), `--colour-mode`/`--color-mode ucblogo|terrapin` (default `ucblogo`), `--stencil-opt KEY=VALUE`, `--size COLSxROWS`, `--scale S` (pixels per turtle step, default 1; use 0.5 for drawings built for a 400x400 screen), `--fit N` (scale so an N x N Logo window fits the canvas; see below), `--no-color`/`--no-colour`, `--no-canvas`. REPL: Tab completes names, history is kept in `~/.termlogo_history`, `BYE` or Ctrl-D leaves.
 
 Inside the REPL, `HELP` lists every command by category, `HELP fd` or `HELP "turtle` explains one, and Tab completes command names, your own procedures and `:variables`. `PRINT VERSION` (or `--version`) shows the version and author.
 
@@ -33,7 +34,7 @@ Inside the REPL, `HELP` lists every command by category, `HELP fd` or `HELP "tur
 - `half`: solid half-block characters, 1x2 pixels per cell. Works in any terminal and has no gaps, but is a quarter of Braille's resolution.
 - `braille`: 2x4 dots per cell. The most detail without graphics support, but lines look dotted.
 
-A drawing keeps the same physical size in every renderer (one step is half a cell wide).
+A drawing keeps the same physical size in every renderer (one step is half a cell wide). In the Braille and half-block renderers the pen is a round brush as wide as `SETPENSIZE` (without anti-aliasing); Kitty paints anti-aliased, round-capped strokes.
 
 **Speed and input:** `SETSPEED 0-10` (or `--speed`) lets you watch it draw. The default is 5; 0 is instant and each step doubles the speed. Piped runs and exports do not animate, but `SPEED` still reports the chosen setting. Moves, turns and arcs are paced, with redraws at up to about 30 frames a second. Escape or Ctrl-C stops the current program, including `WAIT` and loops; at the prompt it cancels the input line. On macOS/Linux in a mouse-reporting terminal, click or left-drag on the canvas to reposition the turtle, including while idle. During drawing, its current movement ends there without drawing a connector, and the next Logo command continues from that point.
 
@@ -96,6 +97,8 @@ This is colour-focused compatibility, not a complete Terrapin interpreter. Brows
 
 An 80x24 terminal gives the REPL a 160x64 pixel Braille canvas centred on (0,0), so coordinates run about -80..80 across and -32..32 up. The canvas follows terminal resizing, both at the prompt and while running a program. The scale, turtle state, strokes and labels are retained; artwork clipped by a smaller window reappears when it grows again. `--size` fixes the canvas dimensions. Larger terminals or `--scale` give more room. WINDOW mode (the default) lets the turtle roam off-screen, as in UCBLogo.
 
+**Textbook coordinates:** programs written for a 1000x1000 Logo window run unchanged with `--fit 1000` (or `FITWINDOW 1000`), which scales the drawing so that window fits the canvas, whatever its size. The fit is kept when the terminal is resized. Pen sizes are in pixels and are not scaled by it. `--scale` and `SETSCALE` remain for choosing a fixed number of pixels per step.
+
 ## Gallery
 Rendered with `./bin/termlogo examples/NAME.logo --speed 0 -o docs/images/NAME.png` (`tree` and `stencil_demo` add `--size 100x40` so the drawing is not clipped).
 
@@ -111,14 +114,21 @@ Rendered with `./bin/termlogo examples/NAME.logo --speed 0 -o docs/images/NAME.p
 - **Data:** `WORD LIST SENTENCE FPUT LPUT COMBINE FIRST LAST BUTFIRST BUTLAST ITEM COUNT MEMBER REVERSE REMOVE REMDUP PICK ISEQ RSEQ UPPERCASE LOWERCASE CHAR ASCII` and the predicates (`EMPTYP LISTP WORDP NUMBERP MEMBERP EQUALP BEFOREP NAMEP PROCEDUREP PRIMITIVEP`).
 - **Maths:** `SUM DIFFERENCE PRODUCT QUOTIENT REMAINDER MODULO INTQUOTIENT MINUS ABS INT ROUND SQRT POWER EXP LN LOG10 PI SIN COS TAN ARCTAN ARCSIN ARCCOS RANDOM RERANDOM AND OR NOT BITAND BITOR BITXOR ASHIFT` and the comparison words. Trig is in degrees.
 - **Turtle:** `FD BK LT RT PU PD HOME CS CLEAN SETPOS SETXY SETX SETY SETH ARC DOT HT ST FILL FILLED LABEL WRAP WINDOW FENCE` (`FILLED` fills the polygon through the points the turtle visits and outlines it in the pen colour, as UCBLogo does), pen modes `PPT PE PX`, `SETPC SETBG SETPEN SETPENSIZE SETPALETTE`, and the queries `POS XCOR YCOR HEADING TOWARDS DISTANCE SHOWNP PENDOWNP PEN PENCOLOR/PENCOLOUR BACKGROUND WRAPP COLOURS/COLORS`. Colour inputs follow the selected mode described above. US and NZ spellings are accepted, including `SETPENCOLOR`/`SETPENCOLOUR` and `SETSCREENCOLOR`/`SETSCREENCOLOUR`.
+- **Arrays:** `{a b c}` literals (and `{a b c}@0` for another origin), `ARRAY MDARRAY LISTTOARRAY ARRAYTOLIST ARRAYP SETITEM MDITEM MDSETITEM`, and `ITEM COUNT FIRST LAST PICK MEMBERP` also work on arrays. Arrays are shared, not copied, and equal only to themselves.
+- **Property lists:** `PPROP GPROP REMPROP PLIST PLISTS PPS ERPS`. `ERALL` erases them too.
 - **Workspace:** `PO POTS PONS ERASE ERALL DEFINE TEXT SAVE LOAD`, `PRINT TYPE SHOW READWORD READLIST`.
+- **Files:** `OPENREAD OPENWRITE OPENAPPEND OPENUPDATE CLOSE CLOSEALL ALLOPEN SETREAD SETWRITE READER WRITER READPOS SETREADPOS WRITEPOS SETWRITEPOS EOFP FILEP ERASEFILE`. After `SETREAD`, `READWORD READLIST READCHAR READCHARS` read from the file, and after `SETWRITE`, `PRINT TYPE SHOW` write to it; `SETREAD []` and `SETWRITE []` go back to the keyboard and screen. Files still open when Logo ends are closed then.
+- **Keys:** `READCHAR READCHARS KEYP`. In the REPL they take keys straight from the keyboard while a program runs (Enter gives a newline; Escape or Ctrl-C stops the program). Piped input is read a character at a time.
+- **Text cursor:** `CURSOR`, `SETCURSOR [column row]`, `CLEARTEXT`. The REPL's text area under the canvas is five rows by the terminal's width, so `SETCURSOR` places text within those (counting from 0) and `PRINT` or `TYPE` then overwrite what is there. It lasts for one command; outside the REPL it is accepted and does nothing.
+- **Jumps:** `GOTO "tag` and `TAG "tag` inside a procedure (also from within `IF`, `REPEAT` and other lists), and `.MAYBEOUTPUT`, which outputs its input if it made one and otherwise behaves like `STOP`.
 - **Tail calls:** a final call in a procedure (also inside a final `IF`/`IFELSE`, or `OUTPUT proc ...`) runs as a loop, so `to loop ... loop end` runs indefinitely in constant memory. Escape or Ctrl-C stops it in the terminal. Other recursion is capped at 25,000 levels and then reports "Stack overflow".
-- **Extensions:** `SETSCALE n` (same as `--scale`), `SETSPEED`/`SPEED`, `STENCIL`, `SAVEPICT "file.svg|png|txt|stl`, `HELP`, `VERSION`.
+- **Extensions:** `SETSCALE n` (same as `--scale`), `FITWINDOW n` (same as `--fit`), `SETSPEED`/`SPEED`, `STENCIL`, `SAVEPICT "file.svg|png|txt|stl`, `HELP`, `VERSION`.
 
 ## Not implemented yet
-- Arrays (`ARRAY SETITEM`), property lists (`PPROP GPROP`), file streams (`OPENREAD` and friends), `READCHAR`, text-screen cursor control, `.MAYBEOUTPUT`, `GOTO`/`TAG`.
-- Braille and half-block pen sizes are rounded to whole-pixel square brushes. Kitty painting uses anti-aliased, round-capped strokes. `PENREVERSE` toggles dots rather than XOR-ing colours, and each Braille cell shows its most common colour.
-- Coordinates are screen-sized, not the 1000x1000 of a typical Logo window, so unscaled programs from textbooks may need `--scale`.
+- Text-screen windows beyond `CURSOR`/`SETCURSOR`, `DRIBBLE`, `SETPREFIX` and directory commands (`DIR`, `FILES`), and `EDIT`.
+- A Braille cell can only show one colour, so where strokes of different colours meet inside one cell (2x4 pixels) the cell takes the most common colour. `--render half` and `--render kitty` colour every pixel.
+- Pen size is in pixels, not turtle steps, so `--fit` and `--scale` do not thicken lines.
+- `PENREVERSE` XORs the pen colour with what is there, so crossing or overlapping reversed lines can cancel out, as in UCBLogo. Terrapin transparency is ignored while reversing.
 
 ## Files
 | File | Purpose |
@@ -128,6 +138,8 @@ Rendered with `./bin/termlogo examples/NAME.logo --speed 0 -o docs/images/NAME.p
 | `termlogo/primitives_core.py` | Control, variables, procedures, I/O, workspace files |
 | `termlogo/primitives_data.py` | Words, lists, arithmetic, logic |
 | `termlogo/primitives_turtle.py` | Turtle and screen commands |
+| `termlogo/primitives_ext.py` | Arrays, property lists, `GOTO`/`TAG`, `.MAYBEOUTPUT`, file streams, keys and the text cursor |
+| `termlogo/arrays.py` | The array type, kept separate so the tokeniser can build `{...}` literals |
 | `termlogo/turtle.py` | Turtle state, movement, WRAP/WINDOW/FENCE, colour parsing |
 | `termlogo/colours.py` | Terrapin's indexed Web colours, RGB/RGBA parsing and alpha compositing |
 | `termlogo/canvas.py` | Pixel canvas, anti-aliased lines, Braille, half-block and Kitty renderers, SVG/PNG/text export |
@@ -165,6 +177,5 @@ Open items, with owners and outstanding questions, are in [HANDOVER.md](HANDOVER
 - Kitty graphics have been observed in Ghostty (as at 2026-10-06). Redraws now erase stale canvas text before placing the image, while retaining intentional `LABEL` text. The latest repairs still need a visual check in a restarted session. If rendering misbehaves, run with `--render half` or set `TERMLOGO_RENDER=braille`.
 - Stencils, including the fill cut-outs, are checked as watertight meshes, not yet test-printed or opened in a slicer.
 - The stencil only bridges parts that are fully cut free. Parts joined to the plate by a hairline are not detected: a `FILLED` star drawn with the pen up leaves its centre attached only at five points. Drawing it with the pen down cuts those joins, and the centre is then bridged properly.
-- A `FILLED` inside another `FILLED` is painted first and then covered wherever the outer shape overlaps it.
 - REPL and script interactions are exercised in pseudo-terminals on macOS (Python 3.14), with text-cell checks for scrolling and overlays; these do not replace a physical rendering check.
 - `print 3 -4` treats `-4` as a separate number (UCBLogo's spacing rule), which surprises some people. Write `3 - 4`.

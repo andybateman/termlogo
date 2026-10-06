@@ -1,5 +1,19 @@
 # Changelog - Terminal Logo Turtle
 
+## [2026-10-07] - Arrays, property lists, files, keys, text cursor, GOTO, round pens and textbook coordinates
+- Fixed nested `FILLED`: the inner shape was painted first and then cleared wherever the outer polygon overlapped it. Inner shapes are now painted again on top of the outer one, in order, and the stencil still records each once
+- Added arrays: `{a b c}` literals (with `@origin`), `ARRAY MDARRAY LISTTOARRAY ARRAYTOLIST ARRAYP SETITEM MDITEM MDSETITEM`, and array support in `ITEM COUNT FIRST LAST PICK MEMBERP`. The tokeniser now treats `{` and `}` as delimiters
+- Added property lists (`PPROP GPROP REMPROP PLIST PLISTS PPS ERPS`; `ERALL` clears them), `GOTO` and `TAG`, and `.MAYBEOUTPUT`
+- Added file streams: `OPENREAD OPENWRITE OPENAPPEND OPENUPDATE CLOSE CLOSEALL ALLOPEN SETREAD SETWRITE READER WRITER READPOS SETREADPOS WRITEPOS SETWRITEPOS EOFP FILEP ERASEFILE`. `READWORD READLIST` and `PRINT TYPE SHOW` follow `SETREAD` and `SETWRITE`. Open files are closed when Logo ends
+- Added `READCHAR`, `READCHARS` and `KEYP`: immediate key input in the REPL (Escape and Ctrl-C stop the program), character reads from piped input and from files
+- Added `CURSOR`, `SETCURSOR` and a working `CLEARTEXT` for the REPL's text area (five rows, per command). Outside the REPL `SETCURSOR` is accepted and does nothing
+- Braille and half-block pens are now round brushes of the true width instead of whole-pixel squares
+- `PENREVERSE` now XORs colours, so drawing a line twice restores what was under it, and a wide reversed stroke flips each pixel once. It used to toggle a pixel between the pen colour and empty
+- Added `--fit N` and `FITWINDOW N`: scale so an N x N Logo window (1000 for textbook programs) fits the canvas; the fit survives terminal resizing
+- Not changed: a Braille cell still shows one colour (its most common), because a Braille character has a single foreground colour
+- Added the demo screenshots under `docs/images/` and a Gallery section in the README
+- Validation (as at 2026-10-07): 302 tests passing, including a live pseudo-terminal test of `READCHAR` and `SETCURSOR`; Ruff lint/format and launcher syntax checks clean. Not tried by hand in Ghostty
+
 ## [2026-10-07] - v0.6.0
 - Released keyboard editing of multi-line commands, stencil cut-outs for `FILL` and `FILLED`, the `FILLED` fix and the export and colour error fixes. The CLI, startup banner, `VERSION` reporter and README now use version 0.6.0
 
