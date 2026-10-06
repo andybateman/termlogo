@@ -388,14 +388,32 @@ def filled(it, colour, body):
         raise LogoError(f"filled doesn't like {V.fmt(body)} as input")
     saved = t.rgb, t.pen_colour_spec
     outer, t.trace = t.trace, [(t.x, t.y)]
+    outer_inner, t.inner = t.inner, []
     try:
         it.run_list(body)
-        t.fill_shape(t.trace, t.parse_colour(colour, 'filled', t.alpha))
+        fill_rgb = t.parse_colour(colour, 'filled', t.alpha)
+        points, pen = list(t.trace), (t.rgb, t.pen_size)
+        t.fill_shape(points, fill_rgb)
+
+        def repaint(points=points, fill_rgb=fill_rgb, pen=pen):
+            now = t.rgb, t.pen_size
+            t.rgb, t.pen_size = pen
+            try:
+                t.fill_shape(points, fill_rgb, record=False)
+            finally:
+                t.rgb, t.pen_size = now
+
+        # Shapes nested inside this one were painted first and the fill above has
+        # covered them where they overlap, so paint them again on top, in order.
+        for again in t.inner:
+            again()
         if outer is not None:  # a FILLED inside another: its moves count for both
             outer.extend(t.trace[1:])
+            outer_inner.append(repaint)
+            outer_inner.extend(t.inner)
         t.beat()
     finally:
-        t.trace = outer
+        t.trace, t.inner = outer, outer_inner
         t.rgb, t.pen_colour_spec = saved
 
 

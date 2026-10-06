@@ -38,6 +38,7 @@ class Turtle:
         self.fills = []
         self._sealed = 0  # strokes that bounded a FILL and so must not grow
         self.trace = None  # points visited while FILLED runs its instructions
+        self.inner = None  # repaint callbacks for FILLED shapes nested in the running one
         self.pen_colour_spec = 7  # as set by SETPENCOLOR (number, name or rgb list)
         self.rgb = PALETTE[7]
         self.bg_spec = 0
@@ -209,9 +210,10 @@ class Turtle:
             self.fills.append(('flood', self.x, self.y, len(self.strokes)))
             self._sealed = len(self.strokes)
 
-    def fill_shape(self, points, rgb):
+    def fill_shape(self, points, rgb, record=True):
         """FILLED: fill the polygon through `points`, then outline it with the pen
-        colour whatever the pen state, as UCBLogo does."""
+        colour whatever the pen state, as UCBLogo does. `record` is False when
+        repainting a nested shape, which the stencil already has."""
         if len(set(points)) < 3:
             return
         self.canvas.fill_polygon(points, rgb)
@@ -219,7 +221,8 @@ class Turtle:
             for p, q in zip(points, points[1:] + points[:1], strict=True):
                 if p != q:
                     self._draw(p, q, 'paint')
-        self.fills.append(('poly', tuple(points), len(self.strokes)))
+        if record:
+            self.fills.append(('poly', tuple(points), len(self.strokes)))
 
     def _wrapped(self, nx, ny):
         hw, hh = self.canvas.half_w, self.canvas.half_h

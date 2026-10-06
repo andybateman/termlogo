@@ -405,6 +405,18 @@ class TurtleTests(unittest.TestCase):
         self.assertEqual([len(fill[1]) for fill in t.fills], [5, 8])
         self.assertIsNone(t.trace)
 
+    def test_nested_filled_is_painted_on_top_of_the_outer_shape(self):
+        # The inner square lies wholly inside the outer one's polygon, where the
+        # even-odd rule would otherwise clear it again.
+        _, _, t, c = run(
+            'pu filled 2 [fd 30 rt 90 fd 30 rt 90 fd 30 rt 90 fd 30 '
+            'setxy 10 10 filled 4 [repeat 4 [fd 6 rt 90]]]'
+        )
+        px, py = c.to_pixel(7, 13)
+        self.assertEqual(c.pix[py][px], (255, 0, 0))
+        self.assertEqual([fill[0] for fill in t.fills], ['poly', 'poly'])
+        self.assertIsNone(t.inner)
+
     def test_colour_errors_name_the_command_that_was_used(self):
         for source, who in (
             ('setbg 99', 'setbackground'),
