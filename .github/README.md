@@ -5,7 +5,7 @@ A Logo interpreter with turtle graphics that runs entirely in the terminal, so i
 ![A flower drawn in the terminal](../docs/images/flower.png)
 
 ## Get started
-You need Python 3.10 or later. There is nothing to install.
+You need Python 3.10 or later. There is nothing to install. Each [release](https://github.com/andybateman/termlogo/releases) also has `termlogo.pyz`, a single file you can download, `chmod +x` and run.
 
 ```bash
 git clone https://github.com/andybateman/termlogo.git

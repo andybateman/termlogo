@@ -44,6 +44,7 @@ Low-effort checks first. "Next session" means work for Claude with Andy.
 | 9 | Side-by-side conformance list against UCBLogo | Next session | Medium |
 | 10 | Install route for the MacBook setup: the `termlogo` link in `~/.oh-my-zsh/oh-my-custom/bin/` is not in the setup script | Andy | Small |
 | 11 | Wider Ruff rules (`UP`, `SIM`, `RUF`): roughly 160 style points, none of them bugs (as at 2026-10-07) | Next session | Small |
+| 14 | Standalone per-platform binaries (PyInstaller or Nuitka via a GitHub Actions matrix on release tags). Needs a token with workflow scope, and `readline` history checked on macOS and Linux. macOS needs signing and notarising to avoid the Gatekeeper warning | Next session | Medium |
 | 13 | Try the new REPL features by hand in Ghostty: `READCHAR` and `KEYP` while a program runs, `SETCURSOR`, `--fit 1000` after resizing the window, and the round Braille pen. | Andy | Small |
 
 Can wait: 7, 8, 9 and 11.

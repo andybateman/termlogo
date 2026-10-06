@@ -1,5 +1,8 @@
 # Changelog - Terminal Logo Turtle
 
+## [2026-10-07] - Single-file build
+- Added `tools/build_pyz.sh`, which builds `dist/termlogo.pyz`: the whole package as one executable zip that runs wherever Python 3.10+ is installed. `dist/` is git-ignored. A test builds the archive and runs it from another directory. Standalone binaries (PyInstaller or Nuitka, one per platform) are not built yet
+
 ## [2026-10-07] - v1.0.0
 - Released the arrays, property lists, file streams, keys, text cursor, `GOTO`, round pens, XOR `PENREVERSE` and `--fit` work below, and the nested `FILLED` fix. The CLI, startup banner, `VERSION` reporter and README now use version 1.0.0
 
