@@ -1,14 +1,14 @@
 # Handover - Terminal Logo Turtle
 
-**As at:** 2026-10-07 (v0.6.0)
+**As at:** 2026-10-07 (v1.0.0)
 
 ## Purpose
 A Logo interpreter with turtle graphics that runs entirely in the terminal, using only the Python standard library. It follows UCBLogo by default, has a Terrapin colour mode for the colour tutorial, and can export a drawing as a 3D-printable stencil. `README.md` is the user guide; this file is the list of what is still to do and how to pick it up.
 
 ## Current state
-- Version 0.6.0, on `main`, pushed to the private GitHub repository `andybateman/termlogo`.
+- Version 1.0.0, on `main`, pushed to the private GitHub repository `andybateman/termlogo`.
 - Ruff lint and format are clean and the unit and pseudo-terminal tests pass (as at 2026-10-07; run the commands under "How to pick it up" for the live result).
-- Added on 2026-10-07 (later): nested `FILLED` repaint, arrays, property lists, file streams, `READCHAR`/`KEYP`, `CURSOR`/`SETCURSOR`, `GOTO`/`TAG`, `.MAYBEOUTPUT`, round pens, XOR `PENREVERSE`, `--fit`. Unreleased: the version is still 0.6.0
+- Added on 2026-10-07 (later): nested `FILLED` repaint, arrays, property lists, file streams, `READCHAR`/`KEYP`, `CURSOR`/`SETCURSOR`, `GOTO`/`TAG`, `.MAYBEOUTPUT`, round pens, XOR `PENREVERSE`, `--fit`.
 - Added on 2026-10-07: keyboard editing of multi-line commands recalled from history, `.stl` added to `STENCIL` names, `FILL` and `FILLED` areas cut out of the stencil, and a repaired `FILLED`.
 - Not yet checked by hand: the later additions (item 13), the new command-pane keys in a real Ghostty window, and the fill cut-outs in a slicer or on the printer. Both are covered only by automated tests so far.
 
@@ -44,8 +44,7 @@ Low-effort checks first. "Next session" means work for Claude with Andy.
 | 9 | Side-by-side conformance list against UCBLogo | Next session | Medium |
 | 10 | Install route for the MacBook setup: the `termlogo` link in `~/.oh-my-zsh/oh-my-custom/bin/` is not in the setup script | Andy | Small |
 | 11 | Wider Ruff rules (`UP`, `SIM`, `RUF`): roughly 160 style points, none of them bugs (as at 2026-10-07) | Next session | Small |
-| 13 | Try the new REPL features by hand in Ghostty: `READCHAR` and `KEYP` while a program runs, `SETCURSOR`, `--fit 1000` after resizing the window, and the round Braille pen. Then decide on a 0.7.0 release | Andy | Small |
-| 12 | Tag the release (`v0.6.0`) if tags are wanted | Andy | Small |
+| 13 | Try the new REPL features by hand in Ghostty: `READCHAR` and `KEYP` while a program runs, `SETCURSOR`, `--fit 1000` after resizing the window, and the round Braille pen. | Andy | Small |
 
 Can wait: 7, 8, 9 and 11.
 

@@ -1,5 +1,8 @@
 # Changelog - Terminal Logo Turtle
 
+## [2026-10-07] - v1.0.0
+- Released the arrays, property lists, file streams, keys, text cursor, `GOTO`, round pens, XOR `PENREVERSE` and `--fit` work below, and the nested `FILLED` fix. The CLI, startup banner, `VERSION` reporter and README now use version 1.0.0
+
 ## [2026-10-07] - Arrays, property lists, files, keys, text cursor, GOTO, round pens and textbook coordinates
 - Fixed nested `FILLED`: the inner shape was painted first and then cleared wherever the outer polygon overlapped it. Inner shapes are now painted again on top of the outer one, in order, and the stencil still records each once
 - Added arrays: `{a b c}` literals (with `@origin`), `ARRAY MDARRAY LISTTOARRAY ARRAYTOLIST ARRAYP SETITEM MDITEM MDSETITEM`, and array support in `ITEM COUNT FIRST LAST PICK MEMBERP`. The tokeniser now treats `{` and `}` as delimiters
