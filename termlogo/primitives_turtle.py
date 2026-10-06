@@ -431,8 +431,12 @@ def export_stencil(it, path, options=None):
 
 @prim('stencil', 1, 1, 2)
 def stencil(it, name, options=None):
-    """STENCIL "file.stl exports a 3D-printable stencil of what has been drawn."""
-    export_stencil(it, V.word(name, 'stencil'), options)
+    """STENCIL "file.stl exports a 3D-printable stencil of what has been drawn.
+    The .stl extension is added when the name does not already end with it."""
+    path = V.word(name, 'stencil')
+    if not path.lower().endswith('.stl'):
+        path += '.stl'
+    export_stencil(it, path, options)
 
 
 @prim('savepict savepic', 1)

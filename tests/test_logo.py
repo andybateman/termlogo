@@ -932,6 +932,22 @@ class StencilTests(unittest.TestCase):
             text, *_ = run('setpensize 2 fd 20 (stencil "' + path + ' [thickness 2 margin 5])')
             self.assertIn('x 2 mm', text)
 
+    def test_stencil_command_adds_a_missing_stl_extension(self):
+        with tempfile.TemporaryDirectory() as d:
+            for name, written in (
+                ('plate', 'plate.stl'),
+                ('Upper.STL', 'Upper.STL'),
+                ('v1.2', 'v1.2.stl'),
+                ('drawing.svg', 'drawing.svg.stl'),
+            ):
+                with self.subTest(name=name):
+                    text, *_ = run('setpensize 2 fd 20 stencil "' + os.path.join(d, name))
+                    self.assertIn(os.path.join(d, written), text)
+                    self.assertGreater(os.path.getsize(os.path.join(d, written)), 84)
+            self.assertEqual(
+                sorted(os.listdir(d)), ['Upper.STL', 'drawing.svg.stl', 'plate.stl', 'v1.2.stl']
+            )
+
     def test_savepict_stl_routes_to_the_stencil(self):
         with tempfile.TemporaryDirectory() as d:
             path = os.path.join(d, 'p.stl')
