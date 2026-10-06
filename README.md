@@ -125,12 +125,14 @@ An 80x24 terminal gives the REPL a 160x64 pixel Braille canvas centred on (0,0),
 | `termlogo/earcut.py` | Polygon-with-holes triangulation (port of the earcut algorithm) |
 | `termlogo/helptext.py` | Help table (a unit test fails if any command lacks an entry) |
 | `termlogo/repl.py`, `__main__.py` | REPL, Tab completion, paging, command line |
+| `termlogo/values.py`, `errors.py`, `registry.py` | Logo data helpers, error and control-flow exceptions, the primitive registry |
 | `bin/termlogo` | Launcher that runs from this folder without installing |
 | `examples/` | `flower`, `tree`, `koch`, `spiral`, `stars`, `stencil_demo`, `stencil_fill` |
 | `tests/test_logo.py` | Unit tests |
 | `tests/test_terminal.py` | Resize, input and live pseudo-terminal regression tests |
 | `tests/test_colours.py` | Terrapin lesson, palette, transparency and compatibility regressions |
 | `ruff.toml`, `requirements-dev.txt` | Project lint/format settings and pinned development tooling |
+| `HANDOVER.md` | Open items with owners, decisions made and how to pick the project up |
 
 ## Development checks
 The interpreter needs no third-party packages. Ruff is a development-only dependency:
@@ -145,6 +147,8 @@ sh -n bin/termlogo
 The lint rules cover Python errors, unused names, imports and Bugbear checks. Formatting is checked separately. The terminal tests use isolated pseudo-terminals and temporary history files; they do not drive the current terminal.
 
 ## Next Steps
+The full list, with owners and outstanding questions, is in `HANDOVER.md`.
+
 1. Recheck Kitty rendering in a restarted Ghostty session after the command-pane and text-overlay repairs; the earlier rendering was observed in the supplied screenshots (as at 2026-10-06). In the same session, try the command-pane keys by hand, and confirm that Shift+Enter adds a line in Ghostty (as at 2026-10-07 only pseudo-terminal tests have exercised them)
 2. Stencil: text via a stencil font, rounded plate corners, 3MF output, and a check for joins too thin to print
 3. Arrays, property lists and `READCHAR`
