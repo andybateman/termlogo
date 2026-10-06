@@ -1,5 +1,16 @@
 # Changelog - Terminal Logo Turtle
 
+## [2026-10-07] - Keyboard editing of multi-line commands, stencil cut-outs and fixes
+- Put the project under git; each change below is its own commit
+- Up and Down now move between the lines of a multi-line command, so a recalled `REPEAT` block or `TO ... END` definition can be edited from the keyboard. They step through history only from the first or last line; Ctrl-P/Ctrl-N and PageUp/PageDown always step through history. This changes one earlier behaviour: Up on a recalled multi-line command no longer jumps straight to the older entry
+- Alt+Enter adds a line break at the cursor (Shift+Enter too where the terminal reports it). Home, End, Ctrl-U and Ctrl-K act on the current line; a second Home or End goes to the start or end of the command. Edits to recalled entries are kept while moving through history. A click past the end of a wrapped row no longer lands on the next row
+- `STENCIL "name` adds `.stl` when the name does not end with it
+- Filled areas are cut out of the stencil. `FILL` removes the area enclosed by the pen lines drawn before it; `FILLED` removes the polygon the turtle traces. Islands left inside are bridged. A `FILL` that is not enclosed, or that starts on a pen line, is left out with a warning. Added `examples/stencil_fill.logo`
+- Fixed `FILLED`: it flood-filled from its start point, which is on the outline, so it recoloured the outline and left the shape empty. It now fills the polygon through every point visited (even-odd rule) and outlines it in the pen colour, as UCBLogo does
+- Fixed a stale "erased or reversed segment(s)" stencil warning after `CLEARSCREEN` or `CLEAN`; `-o file.stl` now gives the same warnings as `STENCIL`
+- `SAVEPICT` and `-o` to a path that cannot be written report an error instead of a Python traceback. Colour errors name the command used (`setbackground doesn't like 99`) rather than always `setpencolor`
+- Validation (as at 2026-10-07): 261 tests passing; Ruff lint/format and launcher syntax checks clean. Fill cut-outs were checked by area and as watertight meshes, not in a slicer. Keyboard editing was exercised in pseudo-terminals, not yet by hand in Ghostty: Shift+Enter there relies on Ghostty sending `CSI 27;2;13~`, which is unconfirmed
+
 ## [2026-10-06] - v0.5.0
 - Released the command-pane, whole-program history, bracketed-paste and startup-guidance improvements. The CLI, startup banner, `VERSION` reporter and README now use version 0.5.0
 

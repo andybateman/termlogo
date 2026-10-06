@@ -1,9 +1,9 @@
 # Terminal Logo Turtle
 
 **Keywords:** Logo, turtle graphics, terminal, REPL, Python, interpreter, Braille graphics, Kitty graphics, Ghostty, UCBLogo, tail recursion, animation, 3D printing, stencil, STL, SVG export, education, Terrapin Logo, RGBA, colours
-**Status:** Active (v0.5.0; as at 2026-10-06)
+**Status:** Active (v0.5.0 plus unreleased changes; as at 2026-10-07)
 **Start Date:** 2026-10-06
-**Last Updated:** 2026-10-06
+**Last Updated:** 2026-10-07
 
 ## Overview
 A Logo interpreter with turtle graphics that runs entirely in the terminal. Python's built-in `turtle` needs a Tk window and PythonTurtle needs wxPython, so neither works over SSH or in a plain terminal. This one draws with Unicode Braille characters (2x4 dots per cell) in 24-bit colour, uses only the Python standard library (Python 3.10 or later), and follows UCBLogo behaviour by default. A selectable Terrapin colour mode supports its colour tutorial without changing existing programs.
@@ -34,9 +34,22 @@ A drawing keeps the same physical size in every renderer (one step is half a cel
 
 **Speed and input:** `SETSPEED 0-10` (or `--speed`) lets you watch it draw. The default is 5; 0 is instant and each step doubles the speed. Piped runs and exports do not animate, but `SPEED` still reports the chosen setting. Moves, turns and arcs are paced, with redraws at up to about 30 frames a second. Escape or Ctrl-C stops the current program, including `WAIT` and loops; at the prompt it cancels the input line. On macOS/Linux in a mouse-reporting terminal, click or left-drag on the canvas to reposition the turtle, including while idle. During drawing, its current movement ends there without drawing a connector, and the next Logo command continues from that point.
 
-The macOS/Linux command pane accepts cursor keys, Home/End, Backspace/Delete, Tab completion and Up/Down history. It grows to display the whole command: source newlines occupy separate rows, and long lines wrap without changing the source. The startup version, help and mouse-selection guidance stays visible until the first command starts running, including while typing an unfinished multi-line command. Blank lines, comments and cancelled input do not dismiss it. Extra command rows use the output area first, then temporarily reduce the canvas; the picture is restored when editing ends. Commands taller than the terminal scroll to keep the editing cursor visible. `--size` still keeps a fixed canvas.
+The macOS/Linux command pane accepts cursor keys, Home/End, Backspace/Delete, Tab completion and Up/Down history (see the key table below). It grows to display the whole command: source newlines occupy separate rows, and long lines wrap without changing the source. The startup version, help and mouse-selection guidance stays visible until the first command starts running, including while typing an unfinished multi-line command. Blank lines, comments and cancelled input do not dismiss it. Extra command rows use the output area first, then temporarily reduce the canvas; the picture is restored when editing ends. Commands taller than the terminal scroll to keep the editing cursor visible. `--size` still keeps a fixed canvas.
 
-**Up recalls a complete submitted command**, including an entire multi-line `REPEAT` block or `TO ... END` definition. Down restores your unfinished draft. Click any visible command row to edit it, including earlier continuation lines; this does not move the turtle. Mouse positions follow wrapping and window resizing. Canvas clicks and terminal resizes preserve your draft. `READWORD` and `READLIST` use the same mouse-aware input handling. History is saved as versioned JSON in `~/.termlogo_history`; older readline history files still load, although their existing per-line entries remain separate. Long output is wrapped and paged in the REPL, so lists such as `COLOURS` can be read in full.
+**Up recalls a complete submitted command**, including an entire multi-line `REPEAT` block or `TO ... END` definition. Down restores your unfinished draft. A recalled multi-line command can be edited in place from the keyboard:
+
+| Key | In the command pane |
+|---|---|
+| Up, Down | Move between the lines of a multi-line command. From its first or last line, step through history |
+| Ctrl-P, Ctrl-N or PageUp, PageDown | Always step through history, whatever line the cursor is on |
+| Alt+Enter (Option+Enter) | Add a line break at the cursor. Shift+Enter does the same in terminals that report it, such as Ghostty and Kitty |
+| Enter | Run the command, wherever the cursor is |
+| Home, End (Ctrl-A, Ctrl-E) | Start or end of the current line; press again for the start or end of the whole command |
+| Ctrl-U, Ctrl-K | Delete to the start or end of the current line |
+
+Edits to a recalled command are kept while you look at other history entries, until you run something. Stored history is only changed by what you run. In macOS Terminal, Option+Enter needs "Use Option as Meta key" switched on.
+
+Click any visible command row to edit it, including earlier continuation lines; this does not move the turtle. Mouse positions follow wrapping and window resizing. Canvas clicks and terminal resizes preserve your draft. `READWORD` and `READLIST` use the same mouse-aware input handling. History is saved as versioned JSON in `~/.termlogo_history`; older readline history files still load, although their existing per-line entries remain separate. Long output is wrapped and paged in the REPL, so lists such as `COLOURS` can be read in full.
 
 **Pasting a program:** in a bracketed-paste terminal such as Ghostty, a multi-line paste stays together in the editor. Press Enter to run it. Up then recalls the entire pasted program, including setup commands before a `REPEAT` block, rather than only the final block. Pasted tabs and line breaks are retained in the source; tabs are displayed as spaces. Commands entered separately remain separate history entries and can be reached with further Up presses.
 
@@ -74,7 +87,9 @@ colours
 
 This is colour-focused compatibility, not a complete Terrapin interpreter. Browser undo controls, background images and patterns are not implemented. UCBLogo's `PALETTE` and `SETPALETTE` remain available only in UCBLogo mode.
 
-**3D-printable stencil:** `STENCIL "plate.stl` (or `(stencil "plate.stl [thickness 1.6 margin 10])`, `SAVEPICT "plate.stl`, or `-o plate.stl`) turns the pen strokes into slots cut through a flat plate and writes a binary STL. One step is 1 mm and pen size is the slot width (`SETPENSIZE 2` cuts 2 mm slots; fractions work). Parts that would fall out, such as the centre of an O, are tied back with bridges automatically. Options: `thickness 1.2`, `margin 8`, `bridge 1.6`, `bridges 2`, `width` (force every slot), `minwidth 0.8`, `plate [w h]`, `mirror true`, `pitch 0.2`, `mm 1`, `maxgap 15`. Try `termlogo examples/stencil_demo.logo -o demo.stl`. Slots narrower than 0.8 mm are widened, and islands smaller than 1 mm2 are filled in, with a warning for each. Only strokes drawn with the pen painting are used: text from `LABEL`, `FILL`, and erased strokes are ignored.
+**3D-printable stencil:** `STENCIL "plate` (or `(stencil "plate [thickness 1.6 margin 10])`, `SAVEPICT "plate.stl`, or `-o plate.stl`) turns the pen strokes into slots cut through a flat plate and writes a binary STL. `STENCIL` adds the `.stl` extension when the name lacks it; `SAVEPICT` and `-o` choose the format from the extension, so they need it. One step is 1 mm and pen size is the slot width (`SETPENSIZE 2` cuts 2 mm slots; fractions work). Parts that would fall out, such as the centre of an O, are tied back with bridges automatically. Options: `thickness 1.2`, `margin 8`, `bridge 1.6`, `bridges 2`, `width` (force every slot), `minwidth 0.8`, `plate [w h]`, `mirror true`, `pitch 0.2`, `mm 1`, `maxgap 15`. Try `termlogo examples/stencil_demo.logo -o demo.stl`. Slots narrower than 0.8 mm are widened, and islands smaller than 1 mm2 are filled in, with a warning for each. Text from `LABEL` and erased or reversed strokes are not part of the stencil.
+
+**Filled areas are cut out.** `FILL` removes the whole area enclosed by the pen lines drawn before it, and `FILLED colour [instructions]` removes the shape the turtle traces, with the pen up or down. Anything left standing inside a cut-out is an island and is bridged like any other, up to `maxgap`. A `FILL` is left out, with a warning, when its area is not closed off by pen lines (on screen the canvas edge can bound a fill; on the plate nothing would) or when the turtle is sitting on a line. The fill colour makes no difference. Try `termlogo examples/stencil_fill.logo -o fill.stl`.
 
 An 80x24 terminal gives the REPL a 160x64 pixel Braille canvas centred on (0,0), so coordinates run about -80..80 across and -32..32 up. The canvas follows terminal resizing, both at the prompt and while running a program. The scale, turtle state, strokes and labels are retained; artwork clipped by a smaller window reappears when it grows again. `--size` fixes the canvas dimensions. Larger terminals or `--scale` give more room. WINDOW mode (the default) lets the turtle roam off-screen, as in UCBLogo.
 
@@ -83,7 +98,7 @@ An 80x24 terminal gives the REPL a 160x64 pixel Braille canvas centred on (0,0),
 - **Control:** `REPEAT FOREVER REPCOUNT IF IFELSE TEST IFTRUE IFFALSE WHILE UNTIL DO.WHILE DO.UNTIL FOR STOP OUTPUT RUN RUNRESULT CATCH THROW ERROR WAIT BYE`, plus `FOREACH MAP FILTER FIND REDUCE APPLY INVOKE` with `?`/`?1`/`?2` slots, procedure names and `[[a b] body]` lambdas.
 - **Data:** `WORD LIST SENTENCE FPUT LPUT COMBINE FIRST LAST BUTFIRST BUTLAST ITEM COUNT MEMBER REVERSE REMOVE REMDUP PICK ISEQ RSEQ UPPERCASE LOWERCASE CHAR ASCII` and the predicates (`EMPTYP LISTP WORDP NUMBERP MEMBERP EQUALP BEFOREP NAMEP PROCEDUREP PRIMITIVEP`).
 - **Maths:** `SUM DIFFERENCE PRODUCT QUOTIENT REMAINDER MODULO INTQUOTIENT MINUS ABS INT ROUND SQRT POWER EXP LN LOG10 PI SIN COS TAN ARCTAN ARCSIN ARCCOS RANDOM RERANDOM AND OR NOT BITAND BITOR BITXOR ASHIFT` and the comparison words. Trig is in degrees.
-- **Turtle:** `FD BK LT RT PU PD HOME CS CLEAN SETPOS SETXY SETX SETY SETH ARC DOT HT ST FILL FILLED LABEL WRAP WINDOW FENCE`, pen modes `PPT PE PX`, `SETPC SETBG SETPEN SETPENSIZE SETPALETTE`, and the queries `POS XCOR YCOR HEADING TOWARDS DISTANCE SHOWNP PENDOWNP PEN PENCOLOR/PENCOLOUR BACKGROUND WRAPP COLOURS/COLORS`. Colour inputs follow the selected mode described above. US and NZ spellings are accepted, including `SETPENCOLOR`/`SETPENCOLOUR` and `SETSCREENCOLOR`/`SETSCREENCOLOUR`.
+- **Turtle:** `FD BK LT RT PU PD HOME CS CLEAN SETPOS SETXY SETX SETY SETH ARC DOT HT ST FILL FILLED LABEL WRAP WINDOW FENCE` (`FILLED` fills the polygon through the points the turtle visits and outlines it in the pen colour, as UCBLogo does), pen modes `PPT PE PX`, `SETPC SETBG SETPEN SETPENSIZE SETPALETTE`, and the queries `POS XCOR YCOR HEADING TOWARDS DISTANCE SHOWNP PENDOWNP PEN PENCOLOR/PENCOLOUR BACKGROUND WRAPP COLOURS/COLORS`. Colour inputs follow the selected mode described above. US and NZ spellings are accepted, including `SETPENCOLOR`/`SETPENCOLOUR` and `SETSCREENCOLOR`/`SETSCREENCOLOUR`.
 - **Workspace:** `PO POTS PONS ERASE ERALL DEFINE TEXT SAVE LOAD`, `PRINT TYPE SHOW READWORD READLIST`.
 - **Tail calls:** a final call in a procedure (also inside a final `IF`/`IFELSE`, or `OUTPUT proc ...`) runs as a loop, so `to loop ... loop end` runs indefinitely in constant memory. Escape or Ctrl-C stops it in the terminal. Other recursion is capped at 25,000 levels and then reports "Stack overflow".
 - **Extensions:** `SETSCALE n` (same as `--scale`), `SETSPEED`/`SPEED`, `STENCIL`, `SAVEPICT "file.svg|png|txt|stl`, `HELP`, `VERSION`.
@@ -110,7 +125,7 @@ An 80x24 terminal gives the REPL a 160x64 pixel Braille canvas centred on (0,0),
 | `termlogo/helptext.py` | Help table (a unit test fails if any command lacks an entry) |
 | `termlogo/repl.py`, `__main__.py` | REPL, Tab completion, paging, command line |
 | `bin/termlogo` | Launcher that runs from this folder without installing |
-| `examples/` | `flower`, `tree`, `koch`, `spiral`, `stars`, `stencil_demo` |
+| `examples/` | `flower`, `tree`, `koch`, `spiral`, `stars`, `stencil_demo`, `stencil_fill` |
 | `tests/test_logo.py` | Unit tests |
 | `tests/test_terminal.py` | Resize, input and live pseudo-terminal regression tests |
 | `tests/test_colours.py` | Terrapin lesson, palette, transparency and compatibility regressions |
@@ -130,7 +145,7 @@ The lint rules cover Python errors, unused names, imports and Bugbear checks. Fo
 
 ## Next Steps
 1. Recheck Kitty rendering in a restarted Ghostty session after the command-pane and text-overlay repairs; the earlier rendering was observed in the supplied screenshots (as at 2026-10-06)
-2. Stencil: filled regions (`FILL`) as cut-out areas, text via a stencil font, rounded plate corners, 3MF output
+2. Stencil: text via a stencil font, rounded plate corners, 3MF output, and a check for joins too thin to print
 3. Arrays, property lists and `READCHAR`
 4. Check behaviour against UCBLogo with a side-by-side conformance list
 5. Decide the install route for the MacBook setup (the `termlogo` link in `~/.oh-my-zsh/oh-my-custom/bin/` is not yet in the repo's setup script)
@@ -139,5 +154,7 @@ The lint rules cover Python errors, unused names, imports and Bugbear checks. Fo
 - A tail call whose callee does not rebind the caller's variables keeps the caller's frame (Logo scope is dynamic), so an endless loop that hops between differently named procedures grows slowly in memory. Self-recursive loops do not.
 - Kitty graphics have been observed in Ghostty (as at 2026-10-06). Redraws now erase stale canvas text before placing the image, while retaining intentional `LABEL` text. The latest repairs still need a visual check in a restarted session. If rendering misbehaves, run with `--render half` or set `TERMLOGO_RENDER=braille`.
 - Stencils are checked as watertight meshes, not yet test-printed or opened in a slicer.
+- The stencil only bridges parts that are fully cut free. Parts joined to the plate by a hairline are not detected: a `FILLED` star drawn with the pen up leaves its centre attached only at five points. Drawing it with the pen down cuts those joins, and the centre is then bridged properly.
+- A `FILLED` inside another `FILLED` is painted first and then covered wherever the outer shape overlaps it.
 - REPL and script interactions are exercised in pseudo-terminals on macOS (Python 3.14), with text-cell checks for scrolling and overlays; these do not replace a physical rendering check.
 - `print 3 -4` treats `-4` as a separate number (UCBLogo's spacing rule), which surprises some people. Write `3 - 4`.
