@@ -1,7 +1,7 @@
 # Terminal Logo Turtle
 
 **Keywords:** termlogo, Logo interpreter, turtle graphics, UCBLogo, Terrapin Logo, terminal REPL, multi-line command editing, command history, Braille graphics, Kitty graphics, Ghostty, 3D-printable stencil, STL, FILL and FILLED cut-outs, flood fill, SVG export, RGBA colours, tail recursion, animation, Python
-**Status:** Active (v0.5.0 plus unreleased changes; as at 2026-10-07)
+**Status:** Active (v0.6.0; as at 2026-10-07)
 **Start Date:** 2026-10-06
 **Last Updated:** 2026-10-07
 **Repository:** https://github.com/andybateman/termlogo (private)

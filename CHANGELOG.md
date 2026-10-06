@@ -1,5 +1,8 @@
 # Changelog - Terminal Logo Turtle
 
+## [2026-10-07] - v0.6.0
+- Released keyboard editing of multi-line commands, stencil cut-outs for `FILL` and `FILLED`, the `FILLED` fix and the export and colour error fixes. The CLI, startup banner, `VERSION` reporter and README now use version 0.6.0
+
 ## [2026-10-07] - Keyboard editing of multi-line commands, stencil cut-outs and fixes
 - Put the project under git, with each change below as its own commit, and published it as the private GitHub repository `andybateman/termlogo`. Generated `.stl` files are git-ignored
 - README keywords reviewed for the new editing and cut-out features
