@@ -10,6 +10,7 @@ from termlogo.canvas import Canvas
 from termlogo.errors import Incomplete, LogoError
 from termlogo.interp import Interp
 from termlogo.lexer import to_number, tokenize
+from termlogo.primitives_ext import _close_all as closeall
 from termlogo.turtle import Turtle
 
 
@@ -1275,6 +1276,234 @@ class RenderTests(unittest.TestCase):
                 self.assertGreater(os.path.getsize(os.path.join(d, name)), 0)
             with open(os.path.join(d, 'a.png'), 'rb') as f:
                 self.assertEqual(f.read(8), b'\x89PNG\r\n\x1a\n')
+
+
+class ArrayTests(unittest.TestCase):
+    def test_literals_print_with_origin_and_nest(self):
+        self.assertEqual(out('print {1 2 [3 4]}'), '{1 2 [3 4]}\n')
+        self.assertEqual(out('show {a b}@0'), '{a b}@0\n')
+        self.assertEqual(out('show {a {b c}}'), '{a {b c}}\n')
+
+    def test_unbalanced_braces_are_reported(self):
+        for source in ('{1 2]', '[1 2}', '}'):
+            with self.subTest(source=source), self.assertRaises(LogoError):
+                tokenize(source)
+        with self.assertRaises(Incomplete):
+            tokenize('{1 2')
+
+    def test_array_item_setitem_count_and_origin(self):
+        self.assertEqual(out('make "a array 3 setitem 2 :a "hi show :a'), '{[] hi []}\n')
+        self.assertEqual(out('print item 0 (array 2 0)'), '\n')
+        self.assertEqual(out('print item 0 {a b}@0'), 'a\n')
+        self.assertEqual(out('print count {a b c} print first {x y} print last {x y}'), '3\nx\ny\n')
+        for bad in ('item 3 {a b}', 'item 0 {a b}', 'setitem 5 array 2 "x', 'setitem 1 [a] "x'):
+            with self.subTest(bad=bad), self.assertRaises(LogoError):
+                run(bad)
+
+    def test_arrays_are_shared_and_equal_only_to_themselves(self):
+        self.assertEqual(
+            out('make "a {1 2} make "b :a setitem 1 :b 9 print item 1 :a'),
+            '9\n',
+        )
+        self.assertEqual(out('make "a {1} print equalp :a :a print equalp :a {1}'), 'true\nfalse\n')
+
+    def test_conversion_and_predicates(self):
+        self.assertEqual(out('show listtoarray [a b c]'), '{a b c}\n')
+        self.assertEqual(out('show (listtoarray [a b] 0)'), '{a b}@0\n')
+        self.assertEqual(out('show arraytolist {1 2 3}'), '[1 2 3]\n')
+        self.assertEqual(
+            out('print arrayp {1} print arrayp [1] print listp {1} print wordp {1}'),
+            'true\nfalse\nfalse\nfalse\n',
+        )
+
+    def test_multi_dimensional_arrays(self):
+        self.assertEqual(
+            out('make "m mdarray [2 3] mdsetitem [2 3] :m 99 print mditem [2 3] :m'), '99\n'
+        )
+        self.assertEqual(out('print mditem [1 1] mdarray [2 2]'), '\n')
+        with self.assertRaises(LogoError):
+            run('print mditem [3 1] mdarray [2 2]')
+
+    def test_butfirst_of_an_array_is_an_error(self):
+        with self.assertRaises(LogoError):
+            run('print butfirst {1 2}')
+
+
+class PropertyListTests(unittest.TestCase):
+    def test_set_get_remove(self):
+        self.assertEqual(
+            out('pprop "me "age 42 print gprop "me "age print gprop "me "none'), '42\n\n'
+        )
+        self.assertEqual(out('pprop "Me "Age 1 print gprop "me "age'), '1\n')
+        self.assertEqual(
+            out('pprop "me "a 1 pprop "me "b 2 remprop "me "a show plist "me show plists'),
+            '[b 2]\n[me]\n',
+        )
+        self.assertEqual(out('pprop "me "a 1 remprop "me "a show plists'), '[]\n')
+
+    def test_pps_and_erase(self):
+        self.assertEqual(out('pprop "me "a [1 2] pps'), 'pprop "me "a [1 2]\n')
+        self.assertEqual(out('pprop "me "a 1 erps show plists'), '[]\n')
+        self.assertEqual(out('pprop "me "a 1 erall show plists'), '[]\n')
+
+
+class GotoTests(unittest.TestCase):
+    def test_goto_loops_within_a_procedure(self):
+        source = (
+            'to count5 make "i 0 tag "top make "i :i + 1 if :i < 5 [goto "top] output :i end '
+            'print count5'
+        )
+        self.assertEqual(out(source), '5\n')
+
+    def test_goto_jumps_forward_and_works_inside_repeat(self):
+        source = 'to skip print 1 goto "end print 2 tag "end print 3 end skip'
+        self.assertEqual(out(source), '1\n3\n')
+        source = 'to f repeat 3 [print repcount if repcount = 2 [goto "done]] print "never tag "done print "ok end f'
+        self.assertEqual(out(source), '1\n2\nok\n')
+
+    def test_goto_without_a_tag_is_an_error(self):
+        with self.assertRaises(LogoError):
+            run('to f goto "nowhere end f')
+
+    def test_tag_names_ignore_case(self):
+        self.assertEqual(out('to f goto "ABC print 1 tag "abc print 2 end f'), '2\n')
+
+
+class MaybeOutputTests(unittest.TestCase):
+    def test_outputs_a_value_or_stops(self):
+        self.assertEqual(out('to f :x .maybeoutput :x end print f 7'), '7\n')
+        self.assertEqual(out('to g .maybeoutput print "side print "after end g'), 'side\n')
+
+
+class StreamTests(unittest.TestCase):
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.dir.cleanup)
+        self.path = os.path.join(self.dir.name, 'data.txt')
+
+    def logo(self, source):
+        text, it, _, _ = run(source.replace('FILE', self.path))
+        self.addCleanup(closeall, it)
+        return text
+
+    def test_write_then_read_back(self):
+        text = self.logo(
+            'openwrite "FILE setwrite "FILE print "hello print [a b c] type "xy '
+            'setwrite [] print writer close "FILE '
+            'openread "FILE setread "FILE print reader print readword show readlist '
+            'print readchar print readchar print eofp print readword'
+        )
+        self.assertEqual(text, f'\n{self.path}\nhello\n[a b c]\nx\ny\ntrue\n\n')
+        with open(self.path) as f:
+            self.assertEqual(f.read(), 'hello\na b c\nxy')
+
+    def test_eof_and_readchars(self):
+        with open(self.path, 'w') as f:
+            f.write('ab')
+        text = self.logo(
+            'openread "FILE setread "FILE print eofp print readchars 5 print eofp '
+            'print readchar print readword print keyp'
+        )
+        self.assertEqual(text, 'false\nab\ntrue\n\n\nfalse\n')
+
+    def test_append_update_and_positions(self):
+        with open(self.path, 'w') as f:
+            f.write('one\n')
+        self.logo('openappend "FILE setwrite "FILE print "two close "FILE')
+        with open(self.path) as f:
+            self.assertEqual(f.read(), 'one\ntwo\n')
+        text = self.logo(
+            'openread "FILE setread "FILE print readword print readpos setreadpos 0 print readword'
+        )
+        self.assertEqual(text, 'one\n4\none\n')
+        self.logo('openupdate "FILE setwrite "FILE type "ONE closeall')
+        with open(self.path) as f:
+            self.assertEqual(f.read(), 'ONE\ntwo\n')
+
+    def test_close_resets_the_current_stream_and_allopen_lists_streams(self):
+        text = self.logo(
+            'openwrite "FILE print allopen setwrite "FILE close "FILE print writer print allopen'
+        )
+        self.assertEqual(text, '%s\n\n\n' % self.path)
+
+    def test_errors(self):
+        missing = os.path.join(self.dir.name, 'missing.txt')
+        for source in (
+            f'openread "{missing}',
+            f'setread "{missing}',
+            f'close "{missing}',
+            f'openwrite "{self.path} openwrite "{self.path}',
+        ):
+            with self.subTest(source=source), self.assertRaises(LogoError):
+                self.logo(source)
+
+    def test_filep_and_erasefile(self):
+        text = self.logo(
+            'print filep "FILE openwrite "FILE closeall print filep "FILE erasefile "FILE '
+            'print filep "FILE'
+        )
+        self.assertEqual(text, 'false\ntrue\nfalse\n')
+
+    def test_keyboard_hooks_are_used_without_a_stream(self):
+        lines = []
+        it = Interp(out=lines.append)
+        keys = iter('ab')
+        it.readchar = lambda: next(keys, '')
+        it.keyp = lambda: True
+        it.eval_source('print readchar print readchars 2 print keyp')
+        self.assertEqual(lines, ['a\n', 'b\n', 'true\n'])
+
+
+class BrushAndReverseTests(unittest.TestCase):
+    def test_brushes_are_round_and_sized_by_width(self):
+        self.assertEqual([len(Canvas.brush(w)) for w in (1, 2, 3, 4, 5)], [1, 4, 9, 12, 21])
+        self.assertEqual(len(Canvas.brush(0.4)), 1)
+
+    def test_thick_lines_have_round_ends_and_even_widths_are_centred(self):
+        _, _, _, c = run('setpensize 5 pu setxy -10 0 pd fd 0 setxy 10 0', size=(40, 10))
+        px, py = c.to_pixel(-10, 0)
+        self.assertIsNotNone(c.pix[py][px - 2])
+        self.assertIsNone(c.pix[py - 2][px - 2])  # the corner of a square brush
+        self.assertIsNotNone(c.pix[py + 2][px])
+        _, _, _, c = run('setpensize 2 setxy 10 0', size=(40, 10))
+        px, py = c.to_pixel(5, 0)
+        self.assertEqual(sum(c.pix[y][px] is not None for y in range(c.height)), 2)
+
+    def test_penreverse_xors_and_drawing_twice_restores(self):
+        _, _, t, c = run('setpc 4 pu setxy -20 5 pd penreverse setxy 20 5', size=(60, 20))
+        px, py = c.to_pixel(0, 5)
+        self.assertEqual(c.pix[py][px], (255, 0, 0))  # black background xor red
+        t.canvas.line(*c.to_pixel(-20, 5), *c.to_pixel(20, 5), (255, 0, 0), 'reverse')
+        self.assertIsNone(c.pix[py][px])
+
+    def test_penreverse_over_a_colour_xors_the_colours(self):
+        _, _, _, c = run('setpc 4 setxy 20 0 penreverse setpc 1 setxy 0 0', size=(60, 20))
+        px, py = c.to_pixel(10, 0)
+        self.assertEqual(c.pix[py][px], (255, 0, 255))  # red xor blue
+
+    def test_wide_reversed_strokes_xor_each_pixel_once(self):
+        _, _, _, c = run('setpc 7 setpensize 4 penreverse setxy 30 0', size=(60, 20))
+        px, py = c.to_pixel(15, 0)
+        column = [c.pix[y][px] for y in range(c.height)]
+        self.assertEqual(column.count((255, 255, 255)), 4)
+
+
+class FitWindowTests(unittest.TestCase):
+    def test_fitwindow_scales_the_window_to_the_canvas(self):
+        _, _, _, c = run('fitwindow 1000', size=(80, 24))
+        self.assertAlmostEqual(c.scale, min(c.width, c.height) / 1000)
+        self.assertEqual(c.fit, 1000)
+
+    def test_a_resized_canvas_keeps_the_fit(self):
+        _, _, _, c = run('fitwindow 1000', size=(80, 24))
+        bigger = Canvas(120, 40)
+        c.copy_to(bigger)
+        self.assertAlmostEqual(bigger.scale, min(bigger.width, bigger.height) / 1000)
+
+    def test_fitwindow_needs_a_positive_size(self):
+        for bad in ('0', '-5', '"x'):
+            with self.subTest(bad=bad), self.assertRaises(LogoError):
+                run('fitwindow ' + bad)
 
 
 if __name__ == '__main__':

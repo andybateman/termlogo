@@ -7,7 +7,7 @@ import sys
 
 from . import __author__, __version__, renderers
 from .colours import COLOUR_MODES
-from .errors import Bye, Incomplete, LogoError, Output, Stop, Throw
+from .errors import Bye, Goto, Incomplete, LogoError, Output, Stop, Throw
 from .repl import SHOW, SYNC_OFF, Display, build, drawing_controls, repl
 from .turtle import DEFAULT_SPEED
 
@@ -34,6 +34,13 @@ def main(argv=None):
         type=float,
         default=1.0,
         help='pixels per turtle step (default 1; try 0.5 for big drawings)',
+    )
+    ap.add_argument(
+        '--fit',
+        type=float,
+        metavar='N',
+        help='scale so an N x N Logo window fits the canvas (try 1000 for textbook '
+        'programs); the fit follows terminal resizing',
     )
     ap.add_argument(
         '-o',
@@ -90,12 +97,21 @@ def main(argv=None):
             ap.error('--size dimensions must be positive')
     if not math.isfinite(a.scale) or a.scale <= 0:
         ap.error('--scale must be a finite positive number')
+    if a.fit is not None and (not math.isfinite(a.fit) or a.fit <= 0):
+        ap.error('--fit must be a finite positive number')
     if not 0 <= a.speed <= 10:
         ap.error('--speed must be between 0 and 10')
 
     if not a.files and not a.eval:
         return repl(
-            cols, rows, a.scale, not a.no_color, a.render, a.speed, colour_mode=a.colour_mode
+            cols,
+            rows,
+            a.scale,
+            not a.no_color,
+            a.render,
+            a.speed,
+            colour_mode=a.colour_mode,
+            fit=a.fit,
         )
 
     sz = shutil.get_terminal_size((80, 24))
@@ -132,6 +148,7 @@ def main(argv=None):
         render,
         cell_px,
         a.colour_mode,
+        a.fit,
     )
     turtle.speed = a.speed
     if animate:
@@ -172,6 +189,10 @@ def main(argv=None):
             except KeyboardInterrupt:
                 report_error(f'{name}: stopped')
                 status = 130
+                break
+            except Goto as g:
+                report_error(f"{name}: Can't find tag {g.tag}")
+                status = 1
                 break
             except (Output, Stop, Throw):
                 report_error(f'{name}: OUTPUT, STOP or THROW used outside a procedure')

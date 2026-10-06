@@ -33,3 +33,11 @@ class Throw(Exception):
 
 class Bye(Exception):
     pass
+
+
+class Goto(Exception):
+    """GOTO "tag: the running procedure resumes after TAG "tag."""
+
+    def __init__(self, tag):
+        super().__init__(tag)
+        self.tag = tag

@@ -4,13 +4,16 @@ import math
 import random
 
 from . import values as V
+from .arrays import LogoArray
 from .errors import LogoError
 from .registry import prim
 
 
-def _items(x, who):
+def _items(x, who, arrays=False):
     if isinstance(x, list):
         return x
+    if arrays and isinstance(x, LogoArray):
+        return x.items
     if isinstance(x, (int, float)):
         x = V.fmt(x)
     if isinstance(x, str):
@@ -98,7 +101,7 @@ def rseq(it, a, b, n):
 # ---- selectors ------------------------------------------------------------
 @prim('first', 1)
 def first(it, x):
-    s = _items(x, 'first')
+    s = _items(x, 'first', True)
     if not s:
         raise LogoError(f"first doesn't like {V.fmt(x)} as input")
     return s[0]
@@ -106,7 +109,7 @@ def first(it, x):
 
 @prim('last', 1)
 def last(it, x):
-    s = _items(x, 'last')
+    s = _items(x, 'last', True)
     if not s:
         raise LogoError(f"last doesn't like {V.fmt(x)} as input")
     return s[-1]
@@ -130,16 +133,16 @@ def butlast(it, x):
 
 @prim('item', 2)
 def item(it, n, x):
-    s = _items(x, 'item')
-    i = V.intval(n, 'item')
-    if not 1 <= i <= len(s):
+    s = _items(x, 'item', True)
+    i = V.intval(n, 'item') - (x.origin if isinstance(x, LogoArray) else 1)
+    if not 0 <= i < len(s):
         raise LogoError(f"item doesn't like {V.fmt(n)} as input")
-    return s[i - 1]
+    return s[i]
 
 
 @prim('pick', 1)
 def pick(it, x):
-    s = _items(x, 'pick')
+    s = _items(x, 'pick', True)
     if not s:
         raise LogoError("pick doesn't like [] as input")
     return random.choice(s)
@@ -147,7 +150,7 @@ def pick(it, x):
 
 @prim('count', 1)
 def count(it, x):
-    return len(_items(x, 'count'))
+    return len(_items(x, 'count', True))
 
 
 @prim('member', 2)
@@ -161,7 +164,7 @@ def member(it, x, lst):
 
 @prim('memberp member?', 2)
 def memberp(it, x, lst):
-    return V.boolword(any(V.equal(x, v) for v in _items(lst, 'memberp')))
+    return V.boolword(any(V.equal(x, v) for v in _items(lst, 'memberp', True)))
 
 
 @prim('emptyp empty?', 1)
@@ -176,7 +179,7 @@ def listp(it, x):
 
 @prim('wordp word?', 1)
 def wordp(it, x):
-    return V.boolword(not isinstance(x, list))
+    return V.boolword(not isinstance(x, (list, LogoArray)))
 
 
 @prim('numberp number?', 1)

@@ -7,12 +7,15 @@ A unary minus is folded into a number literal (`-5`) or emitted as `u-`.
 import math
 import re
 
+from .arrays import LogoArray
 from .errors import Incomplete, LogoError
 
 NUMBER_RE = re.compile(r'(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?')
 INFIX = {'=': 1, '<>': 1, '<': 1, '>': 1, '<=': 1, '>=': 1, '+': 2, '-': 2, '*': 3, '/': 3, '^': 4}
 OPS1 = set('+-*/=<>^')
-DELIMS = set('[]()') | OPS1
+DELIMS = set('[]{}()') | OPS1
+OPENER = {']': '[', '}': '{'}
+ORIGIN_RE = re.compile(r'@(-?\d+)')
 
 
 def is_number_token(tok):
@@ -35,6 +38,7 @@ def to_number(tok):
 def tokenize(text):
     """Return a list of tokens. Raises Incomplete if brackets are unbalanced."""
     stack = [[]]
+    kinds = ['[']  # what opened each level: '[' for a list, '{' for an array
     i, n = 0, len(text)
     prev_ws = True
 
@@ -56,16 +60,23 @@ def tokenize(text):
             prev_ws = True
             continue
         cur = stack[-1]
-        if c == '[':
+        if c in '[{':
             new = []
             cur.append(new)
             stack.append(new)
+            kinds.append(c)
             i += 1
-        elif c == ']':
-            if len(stack) == 1:
-                raise LogoError("Unexpected ']'")
-            stack.pop()
+        elif c in ']}':
+            if len(stack) == 1 or kinds[-1] != OPENER[c]:
+                raise LogoError(f"Unexpected '{c}'")
+            items = stack.pop()
+            kinds.pop()
             i += 1
+            if c == '}':
+                origin = ORIGIN_RE.match(text, i)
+                if origin:
+                    i = origin.end()
+                stack[-1][-1] = LogoArray(items, int(origin.group(1)) if origin else 1)
         elif c in '()':
             cur.append(c)
             i += 1
@@ -110,7 +121,7 @@ def tokenize(text):
             i = end + 1
         elif c == '"':
             j = i + 1
-            while j < n and not text[j].isspace() and text[j] not in '[]()':
+            while j < n and not text[j].isspace() and text[j] not in '[]{}()':
                 j += 1
             cur.append(text[i:j])
             i = j

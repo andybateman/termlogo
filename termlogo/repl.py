@@ -169,6 +169,44 @@ class DrawingControls:
             if event is None and time.monotonic() >= deadline:
                 return False
 
+    def readchar(self):
+        """READCHAR: wait for one key and return it ('' at end of input).
+        Escape or Ctrl-C stops the program; arrow keys and mouse reports are skipped."""
+        while True:
+            if self.pending:
+                data = self.pending.popleft()
+            else:
+                try:
+                    data = self.read_event(1 / 30)
+                except EOFError:
+                    return ''
+                if self.display is not None:
+                    self.display.refresh()
+                if data is None:
+                    continue
+            if data in (b'\x1b', b'\x03'):
+                raise KeyboardInterrupt
+            if data.startswith(b'\x1b'):
+                if data.startswith(b'\x1b[<') and self._mouse(data[3:]) and self.display:
+                    self.display.draw()
+                continue
+            if data == b'\r':
+                return '\n'
+            if data[0] >= 0xC0:  # the start of a multi-byte character
+                more = 1 if data[0] < 0xE0 else 2 if data[0] < 0xF0 else 3
+                while more:
+                    try:
+                        data += os.read(self.fd, 1)
+                    except OSError:
+                        break
+                    more -= 1
+            return data.decode(sys.stdin.encoding or 'utf-8', 'replace')
+
+    def keyp(self):
+        """KEYP: has a key been pressed that READCHAR has not yet returned?"""
+        self(0)
+        return any(not event.startswith(b'\x1b') for event in self.pending)
+
     def poll(self):
         now = time.monotonic()
         if now - self._last_poll >= 1 / 30:
@@ -424,6 +462,7 @@ class drawing_controls:
             if self.it is not None:
                 self.previous_poll, self.previous_wait = self.it.on_poll, self.it.on_wait
                 self.previous_readline = self.it.readline
+                self.previous_keys = self.it.readchar, self.it.keyp
             try:
                 tty.setcbreak(self.fd, termios.TCSANOW)
                 active = termios.tcgetattr(self.fd)
@@ -434,6 +473,7 @@ class drawing_controls:
                 if self.it is not None:
                     self.it.on_poll, self.it.on_wait = self.controls.poll, self.controls.wait
                     self.it.readline = self.readline
+                    self.it.readchar, self.it.keyp = self.controls.readchar, self.controls.keyp
                 sys.stdout.write(MOUSE_ON)
                 sys.stdout.flush()
             except BaseException:
@@ -464,13 +504,14 @@ class drawing_controls:
                 if self.it is not None:
                     self.it.on_poll, self.it.on_wait = self.previous_poll, self.previous_wait
                     self.it.readline = self.previous_readline
+                    self.it.readchar, self.it.keyp = self.previous_keys
                 self.termios.tcsetattr(self.fd, self.termios.TCSADRAIN, self.settings)
 
 
-def build(cols, rows, scale, out, render='braille', cell_px=None, colour_mode='ucblogo'):
+def build(cols, rows, scale, out, render='braille', cell_px=None, colour_mode='ucblogo', fit=None):
     from .turtle import Turtle
 
-    canvas = renderers.make_canvas(render, cols, rows, scale, cell_px)
+    canvas = renderers.make_canvas(render, cols, rows, scale, cell_px, fit)
     turtle = Turtle(canvas, colour_mode=colour_mode)
     it = Interp(out=out)
     it.attach_turtle(turtle)
@@ -500,9 +541,67 @@ class Display:
         self.running = False
         it.on_frame = self.draw
         turtle.frame_cb = self.draw
+        self.cursor = None  # [col, row in the log] once SETCURSOR has been used
+        self.cursor_base = 0  # log index of the text pane's top row
+        it.cursor_get, it.cursor_set, it.text_clear = (
+            self.get_cursor,
+            self.set_cursor,
+            self.clear_text,
+        )
 
     def log_text(self, text):
-        self.log.extend(_wrapped_lines(text, self.cols))
+        if self.cursor is None:
+            self.log.extend(_wrapped_lines(text, self.cols))
+        else:
+            self._put_text(text)
+
+    # ---- text cursor (CURSOR, SETCURSOR, CLEARTEXT) --------------------------
+    # The text pane under the canvas shows the last LOG_LINES lines of the log, so
+    # cursor positions are (column, row) within those rows, counted from the top.
+    def get_cursor(self):
+        if self.cursor is None:
+            return [0, min(len(self.log) - max(0, len(self.log) - LOG_LINES), LOG_LINES - 1)]
+        return [self.cursor[0], self.cursor[1] - self.cursor_base]
+
+    def set_cursor(self, col, row):
+        if row >= LOG_LINES or col >= self.cols:
+            raise LogoError(
+                f'SETCURSOR is limited to {self.cols} columns and {LOG_LINES} rows here'
+            )
+        if self.cursor is None:
+            self.cursor_base = max(0, len(self.log) - LOG_LINES)
+        self.cursor = [col, self.cursor_base + row]
+        while len(self.log) <= self.cursor[1]:
+            self.log.append('')
+
+    def clear_text(self):
+        self.log.clear()
+        self.cursor_base = 0
+        if self.cursor is not None:
+            self.cursor = [0, 0]
+            self.log.append('')
+
+    def _put_text(self, text):
+        """Write text at the cursor, over what is already there."""
+        col, row = self.cursor
+        for index, piece in enumerate(text.split('\n')):
+            if index:
+                col, row = 0, row + 1
+            while piece:
+                if col >= self.cols:
+                    col, row = 0, row + 1
+                room = piece[: self.cols - col]
+                while len(self.log) <= row:
+                    self.log.append('')
+                line = self.log[row].ljust(col)
+                self.log[row] = line[:col] + room + line[col + len(room) :]
+                col += len(room)
+                piece = piece[len(room) :]
+            if row >= self.cursor_base + LOG_LINES:  # scrolled off the bottom
+                self.cursor_base = row - LOG_LINES + 1
+        while len(self.log) <= row:
+            self.log.append('')
+        self.cursor = [col, row]
 
     @property
     def banner_lines(self):
@@ -715,6 +814,7 @@ def repl(
     speed=DEFAULT_SPEED,
     interpreter=None,
     colour_mode='ucblogo',
+    fit=None,
 ):
     tty = sys.stdin.isatty() and sys.stdout.isatty()
     auto_size = cols is None and rows is None
@@ -739,7 +839,7 @@ def repl(
             sys.stdout.flush()
 
     if interpreter is None:
-        it, canvas, turtle = build(cols, rows, scale, out, render, cell_px, colour_mode)
+        it, canvas, turtle = build(cols, rows, scale, out, render, cell_px, colour_mode, fit)
         turtle.speed = speed
     else:
         it, turtle = interpreter, interpreter.turtle
@@ -796,6 +896,7 @@ def repl(
             else:
                 buf = (buf + '\n' + line) if buf else line
             mark = len(log)
+            display.cursor = None  # SETCURSOR lasts for one command
             display.running = True
             if tty:
                 display.command_rows = 1
@@ -851,8 +952,10 @@ def _page(lines):
 
 
 def _report(it, e):
-    from .errors import Output, Stop, Throw
+    from .errors import Goto, Output, Stop, Throw
 
+    if isinstance(e, Goto):
+        return f"Can't find tag {e.tag}\n"
     if isinstance(e, Throw):
         return f"Can't find catch tag for {e.tag}\n"
     if isinstance(e, Output):

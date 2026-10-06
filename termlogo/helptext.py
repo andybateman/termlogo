@@ -27,6 +27,9 @@ runresult | runresult [instructions] | Like RUN, but outputs a list holding the 
 wait | wait n | Pause for n sixtieths of a second (and redraw the canvas).
 catch | catch "tag [instructions] | Run the list; THROW "tag jumps back here. CATCH "ERROR traps errors.
 throw | throw "tag | Jump to the matching CATCH. (throw "tag value) passes a value.
+goto | goto "tag | Jump to TAG "tag in the same procedure. Works from inside IF, REPEAT and other lists.
+tag | tag "name | Mark a place for GOTO. Does nothing when run.
+.maybeoutput | .maybeoutput value | Output the value if the input made one; if it made none, behave like STOP.
 error | error | After CATCH "ERROR caught something, outputs [code message procedure line].
 
 == Variables and procedures
@@ -65,6 +68,31 @@ show | show thing | Print a list with its brackets.
 readword | readword | Read a line of typed input as one word. Alias: RW.
 readlist | readlist | Read a line of typed input as a list. Alias: RL.
 cleartext | cleartext | Clear the text area. Alias: CT.
+readchar | readchar | Wait for one key and output it (Enter gives a newline), or [] at the end of input. From a file when SETREAD is in use. Escape stops. Alias: RC.
+readchars | readchars n | Output the next n characters, or [] at the end of input. Alias: RCS.
+keyp | keyp | True if a key has been pressed and READCHAR has not yet taken it (or the file has more to read). Alias: KEY?.
+cursor | cursor | Output [column row] of the text cursor in the text area under the canvas. Counts from 0.
+setcursor | setcursor [column row] | Move the text cursor within the text area (80 columns by 5 rows at most); TYPE and PRINT then overwrite what is there. Lasts for one command in the REPL. Does nothing outside the REPL.
+
+== Files
+openread | openread "file | Open a file for reading. SETREAD then makes READWORD, READLIST, READCHAR and EOFP use it.
+openwrite | openwrite "file | Create or empty a file for writing. SETWRITE then makes PRINT, TYPE and SHOW write to it.
+openappend | openappend "file | Open a file for writing at its end.
+openupdate | openupdate "file | Open an existing file (or a new one) for reading and writing from the start.
+close | close "file | Close a file opened with one of the OPEN commands.
+closeall | closeall | Close every open file.
+allopen | allopen | Output the list of open files.
+setread | setread "file | Read from this open file. SETREAD [] goes back to the keyboard.
+setwrite | setwrite "file | Write PRINT, TYPE and SHOW output to this open file. SETWRITE [] goes back to the screen.
+reader | reader | Output the file being read, or [] for the keyboard.
+writer | writer | Output the file being written, or [] for the screen.
+readpos | readpos | Output the current position in the read file.
+setreadpos | setreadpos n | Move to position n in the read file.
+writepos | writepos | Output the current position in the write file.
+setwritepos | setwritepos n | Move to position n in the write file.
+eofp | eofp | True if the read file has nothing more to read. Alias: EOF?.
+filep | filep "file | True if the file exists. Alias: FILE?.
+erasefile | erasefile "file | Delete a file. Alias: ERF.
 
 == Words and lists
 word | word a b | Join words. (word a b c) takes more.
@@ -98,6 +126,23 @@ uppercase | uppercase word | Convert to upper case.
 lowercase | lowercase word | Convert to lower case.
 char | char n | The character with that code.
 ascii | ascii char | The code of a character.
+
+== Arrays and property lists
+array | array size  or  (array size origin) | Make an array of empty lists. Items count from 1, or from origin. Written {a b c}, or {a b c}@0 for origin 0.
+mdarray | mdarray [sizes]  or  (mdarray [sizes] origin) | Make an array of arrays, for example mdarray [3 4].
+listtoarray | listtoarray list  or  (listtoarray list origin) | Make an array holding the list's members.
+arraytolist | arraytolist array | The array's members as a list.
+arrayp | arrayp thing | True if the thing is an array. Alias: ARRAY?.
+setitem | setitem n array value | Change member n of the array. All variables holding that array see the change.
+mditem | mditem [i j] array | Member of a multi-dimensional array.
+mdsetitem | mdsetitem [i j] array value | Change a member of a multi-dimensional array.
+pprop | pprop "plist "prop value | Set a property on a property list.
+gprop | gprop "plist "prop | Output the property's value, or [] if it has none.
+remprop | remprop "plist "prop | Remove a property.
+plist | plist "plist | Output the property list as [prop value prop value].
+plists | plists | Output the names of all property lists.
+pps | pps | Print every property list as PPROP commands.
+erps | erps | Erase every property list.
 
 == Logic
 and | and a b | True if all inputs are true. Inputs may be [lists] to run. (and a b c) takes more.
@@ -200,6 +245,7 @@ label | label thing | Write text at the turtle's position.
 setspeed | setspeed n | Watch it draw: 0 is instant, 1 is slow, 5 is the default, 10 is fast. Each step doubles the speed.
 speed | speed | The current SETSPEED value.
 setscale | setscale n | Pixels per turtle step (default 1). Extension. 0.5 halves drawings.
+fitwindow | fitwindow n | Scale so an n x n window (try 1000) fits the canvas, and keep it fitted on resize. Extension. --fit n does the same.
 textscreen | textscreen | Accepted and ignored. Also FULLSCREEN, SPLITSCREEN (TS, FS, SS).
 savepict | savepict "file.svg | Export the drawing as .svg, .png, .txt or .stl (a stencil). Alias: SAVEPIC.
 stencil | stencil "file  or  (stencil "file [options]) | Export a 3D-printable stencil: a flat plate with your pen strokes cut through it as slots and your filled areas (FILL, FILLED) cut out, as a binary STL. The .stl extension is added if the name lacks it. One step is 1 mm and pen size is the slot width (SETPENSIZE 2 for 2 mm). Islands such as the centre of an O are tied back with bridges. A FILL that is not enclosed by pen lines is left out with a warning. Options: thickness 1.2, margin 8, bridge 1.6, bridges 2, width (force every slot), minwidth 0.8, plate [w h], mirror true, pitch 0.2, mm 1, maxgap 15.

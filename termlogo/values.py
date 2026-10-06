@@ -1,5 +1,6 @@
 """Logo data helpers. Words are str, numbers are int/float, lists are list."""
 
+from .arrays import LogoArray
 from .errors import LogoError
 from .lexer import is_number_token, to_number
 
@@ -8,6 +9,9 @@ TRUE, FALSE = 'true', 'false'
 
 def fmt(x, top=False):
     """Format a value as PRINT (top=True, outer brackets dropped) or SHOW would."""
+    if isinstance(x, LogoArray):
+        text = '{' + ' '.join(fmt(i) for i in x.items) + '}'
+        return text if x.origin == 1 else f'{text}@{x.origin}'
     if isinstance(x, list):
         inner = ' '.join(fmt(i) for i in x)
         return inner if top else '[' + inner + ']'
@@ -59,12 +63,14 @@ def boolword(b):
 
 
 def word(x, who='?'):
-    if isinstance(x, list):
+    if isinstance(x, (list, LogoArray)):
         raise LogoError(f"{who} doesn't like {fmt(x)} as input")
     return fmt(x)
 
 
 def equal(a, b):
+    if isinstance(a, LogoArray) or isinstance(b, LogoArray):
+        return a is b
     if isinstance(a, list) or isinstance(b, list):
         return (
             isinstance(a, list)

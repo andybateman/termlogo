@@ -188,7 +188,7 @@ class Turtle:
                 b[1],
                 self.rgb,
                 mode,
-                max(1, int(round(width))),
+                max(1.0, float(width)),
                 self._painted,
             )
 

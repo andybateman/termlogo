@@ -282,6 +282,7 @@ def erase(it, what):
 def erall(it):
     it.procs.clear()
     it.scopes[0].clear()
+    it.plists.clear()
 
 
 @prim('define', 2)
@@ -374,21 +375,24 @@ def invoke(it, tpl, *args):
 # ---- input and output -----------------------------------------------------
 @prim('print pr', 1, 1, -1)
 def print_(it, *args):
-    it.write(' '.join(V.fmt(a, top=True) for a in args) + '\n')
+    it.emit(' '.join(V.fmt(a, top=True) for a in args) + '\n')
 
 
 @prim('type', 1, 1, -1)
 def type_(it, *args):
-    it.write(''.join(V.fmt(a, top=True) for a in args))
+    it.emit(''.join(V.fmt(a, top=True) for a in args))
 
 
 @prim('show', 1, 1, -1)
 def show(it, *args):
-    it.write(' '.join(V.fmt(a) for a in args) + '\n')
+    it.emit(' '.join(V.fmt(a) for a in args) + '\n')
 
 
 @prim('readword rw', 0, 0, 0)
 def readword(it):
+    if it.reader is not None:
+        line = it.reader.readline()
+        return line.rstrip('\r\n') if line else []
     try:
         return it.readline('')
     except EOFError:
@@ -397,6 +401,9 @@ def readword(it):
 
 @prim('readlist rl', 0, 0, 0)
 def readlist(it):
+    if it.reader is not None:
+        line = it.reader.readline()
+        return tokenize(line) if line else []
     try:
         return tokenize(it.readline(''))
     except EOFError:
@@ -405,7 +412,8 @@ def readlist(it):
 
 @prim('cleartext ct', 0)
 def cleartext(it):
-    it.write('\x1b[2J\x1b[H' if getattr(it, 'ansi_text', False) else '')
+    if it.text_clear is not None:
+        it.text_clear()
 
 
 # ---- workspace files ------------------------------------------------------

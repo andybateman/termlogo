@@ -53,7 +53,14 @@ def choose(requested=None, tty=True, env=None, cell_px=None):
     return requested, px
 
 
-def make_canvas(name, cols, rows, scale=1.0, cell_px=None):
+def make_canvas(name, cols, rows, scale=1.0, cell_px=None, fit=None):
+    canvas = _canvas(name, cols, rows, scale, cell_px)
+    if fit:
+        canvas.fit_window(fit)
+    return canvas
+
+
+def _canvas(name, cols, rows, scale, cell_px):
     if name == 'half':
         return Canvas(cols, rows, scale, cell=(1, 2))
     if name == 'kitty':

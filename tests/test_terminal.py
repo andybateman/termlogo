@@ -294,6 +294,64 @@ class ResizeTests(unittest.TestCase):
         self.assertAlmostEqual(turtle.x, -10)
         self.assertAlmostEqual(turtle.y, -10)
 
+    def test_resize_keeps_a_fitted_window(self):
+        it, turtle, display = self.build()
+        it.eval_source('fitwindow 1000')
+        with patch('termlogo.repl._terminal_size', return_value=os.terminal_size((120, 40))):
+            display.draw()
+        canvas = display.canvas
+        self.assertEqual(canvas.fit, 1000)
+        self.assertAlmostEqual(canvas.scale, min(canvas.width, canvas.height) / 1000)
+
+
+class TextCursorTests(unittest.TestCase):
+    def build(self, cols=20):
+        canvas = Canvas(cols, 8)
+        turtle = Turtle(canvas)
+        it = Interp(out=lambda text: None)
+        it.attach_turtle(turtle)
+        log = []
+        display = Display(it, canvas, turtle, 'braille', False, log, io.StringIO())
+        it.out = display.log_text
+        return it, display, log
+
+    def test_setcursor_overwrites_text_in_the_pane(self):
+        it, display, log = self.build()
+        it.eval_source('print "alpha print "beta print "gamma')
+        it.eval_source('setcursor [2 1] type "XY')
+        self.assertEqual(log, ['alpha', 'beXY', 'gamma'])
+
+    def test_cursor_reports_position_and_text_continues_from_it(self):
+        it, display, log = self.build()
+        it.eval_source('setcursor [3 2] print cursor')
+        self.assertEqual(log[2], '   3 2')
+        self.assertEqual(it.cursor_get(), [0, 3])
+
+    def test_newlines_move_down_and_the_pane_scrolls(self):
+        it, display, log = self.build()
+        it.eval_source('setcursor [0 4] print "a print "b')
+        self.assertEqual(log[-3:], ['a', 'b', ''])
+        self.assertEqual(display.get_cursor(), [0, 4])
+
+    def test_positions_outside_the_pane_are_refused(self):
+        it, display, log = self.build()
+        with self.assertRaises(LogoError):
+            it.eval_source('setcursor [0 5]')
+        with self.assertRaises(LogoError):
+            it.eval_source('setcursor [20 0]')
+
+    def test_cleartext_empties_the_pane(self):
+        it, display, log = self.build()
+        it.eval_source('print "a print "b cleartext')
+        self.assertEqual(log, [])
+        it.eval_source('print "c')
+        self.assertEqual(log, ['c'])
+
+    def test_cleartext_in_cursor_mode_homes_the_cursor(self):
+        it, display, log = self.build()
+        it.eval_source('print "a setcursor [0 0] cleartext type "z')
+        self.assertEqual(log, ['z'])
+
 
 class HistoryTests(unittest.TestCase):
     def test_multiline_commands_round_trip_without_losing_newlines(self):
@@ -414,6 +472,47 @@ class ControlTests(unittest.TestCase):
         finally:
             os.close(master)
             os.close(slave)
+
+    def test_readchar_returns_keys_including_utf8_and_skips_escape_sequences(self):
+        read_fd, write_fd = os.pipe()
+        try:
+            controls = DrawingControls(Turtle(Canvas(20, 10)), read_fd)
+            os.write(write_fd, b'\x1b[A' + 'q'.encode() + b'\r' + 'é'.encode() + b'\x1b[<0;5;5M')
+            self.assertEqual(controls.readchar(), 'q')
+            self.assertEqual(controls.readchar(), '\n')
+            self.assertEqual(controls.readchar(), 'é')
+            os.close(write_fd)
+            write_fd = None
+            self.assertEqual(controls.readchar(), '')
+        finally:
+            os.close(read_fd)
+            if write_fd is not None:
+                os.close(write_fd)
+
+    def test_readchar_stops_on_escape_and_ctrl_c(self):
+        for key in (b'\x1b', b'\x03'):
+            read_fd, write_fd = os.pipe()
+            try:
+                controls = DrawingControls(Turtle(Canvas(20, 10)), read_fd)
+                os.write(write_fd, key)
+                with self.assertRaises(KeyboardInterrupt):
+                    controls.readchar()
+            finally:
+                os.close(read_fd)
+                os.close(write_fd)
+
+    def test_keyp_sees_a_waiting_key_without_taking_it(self):
+        read_fd, write_fd = os.pipe()
+        try:
+            controls = DrawingControls(Turtle(Canvas(20, 10)), read_fd)
+            self.assertFalse(controls.keyp())
+            os.write(write_fd, b'x')
+            self.assertTrue(controls.keyp())
+            self.assertEqual(controls.readchar(), 'x')
+            self.assertFalse(controls.keyp())
+        finally:
+            os.close(read_fd)
+            os.close(write_fd)
 
     def test_arrow_keys_do_not_cancel_or_leave_sequence_bytes(self):
         read_fd, write_fd = os.pipe()
@@ -783,6 +882,20 @@ class LiveTerminalTests(unittest.TestCase):
         screen = TextScreen()
         screen.feed(terminal.output)
         return '\n'.join(screen.row(row) for row in range(24))
+
+    def test_readchar_takes_a_key_while_a_program_runs_and_setcursor_places_text(self):
+        terminal = self.start('--speed', '0')
+        terminal.send('print readchar\n')
+        terminal.expect(b'\x1b[?1002h')
+        terminal.send('k')
+        terminal.expect(b'k\x1b[K')
+        terminal.expect_prompt()
+        terminal.send('setcursor [10 2] type "here\n')
+        terminal.expect_prompt()
+        rows = self.screen_text(terminal).splitlines()
+        self.assertTrue(any(row.startswith(' ' * 10 + 'here') for row in rows), rows)
+        terminal.send('bye\n')
+        self.assertEqual(terminal.wait(), 0)
 
     def test_startup_banner_is_shown_until_first_command(self):
         terminal = self.start('--render', 'kitty')

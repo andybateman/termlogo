@@ -93,6 +93,8 @@ class _Bytes(dict):
 
 
 class Canvas:
+    _brushes = {}
+
     def __init__(self, cols=80, rows=24, scale=1.0, cell=(2, 4), unit=1, aa=False):
         self.cols, self.rows = cols, rows
         self.cell = cell
@@ -103,6 +105,7 @@ class Canvas:
         self.unit = unit  # pixels per pen-size unit
         self.aa = aa  # anti-aliased paint lines
         self.alpha = False
+        self.fit = None  # logical window size set by FITWINDOW, kept across resizes
         self.marker_r = 1.5 * cell[1] if cell[1] <= 4 else 0.5 * cell[1]
         self.bg = PALETTE[0]
         self.pix = [[None] * self.width for _ in range(self.height)]
@@ -119,10 +122,18 @@ class Canvas:
         }
         self.scale = new_scale
 
+    def fit_window(self, size):
+        """Scale so a `size` x `size` Logo window fits the canvas, as in a typical
+        1000x1000 Logo window. A resized canvas keeps the fit."""
+        self.fit = size
+        self.set_scale(min(self.width, self.height) / size / self.base_scale)
+
     def copy_to(self, target):
         """Copy picture contents to a resized canvas, preserving Logo coordinates."""
         target.bg = self.bg
         target.alpha = self.alpha
+        if self.fit is not None:
+            target.fit_window(self.fit)
         if target.scale == self.scale:
             # Keep the pixel-grid phase when an odd number of half-block cells changes.
             target.origin_x = self.origin_x + round(target.origin_x - self.origin_x)
@@ -213,27 +224,60 @@ class Canvas:
         bg = composite(self.bg, (255, 255, 255))[:3]
         return composite(colour, bg)[:3]
 
-    def plot(self, x, y, rgb, mode='paint', size=1, painted=None):
+    @staticmethod
+    def brush(width):
+        """Pixel offsets of a round brush `width` pixels across. Odd widths are
+        centred on a pixel and even ones on the corner between four."""
+        cached = Canvas._brushes.get(width)
+        if cached is None:
+            n = max(1, int(width + 0.5))
+            if n == 1:
+                cached = [(0, 0)]
+            else:
+                shift = 0.5 if n % 2 == 0 else 0.0
+                reach = n // 2 + 1
+                limit = (width / 2 + 0.1) ** 2
+                cached = [
+                    (dx, dy)
+                    for dy in range(-reach, reach + 1)
+                    for dx in range(-reach, reach + 1)
+                    if (dx + shift) ** 2 + (dy + shift) ** 2 <= limit
+                ]
+            Canvas._brushes[width] = cached
+        return cached
+
+    def _reverse(self, px, py, rgb):
+        """PENREVERSE: XOR the pixel's colour with the pen's, so drawing the same
+        line twice puts back what was there."""
+        base = self.display_colour(self.pix[py][px])
+        new = tuple(a ^ b for a, b in zip(base, rgb[:3], strict=True))
+        if new == self.display_colour(None):
+            self.pix[py][px] = None
+        else:
+            self.pix[py][px] = new if len(rgb) == 3 else (*new, 1)
+
+    def plot(self, x, y, rgb, mode='paint', size=1, painted=None, done=None):
         if mode != 'erase' and len(rgb) == 4 and rgb[3] == 0:
             return
-        off = size // 2
-        for dy in range(size):
-            for dx in range(size):
-                px, py = x - off + dx, y - off + dy
-                if 0 <= px < self.width and 0 <= py < self.height:
-                    if mode == 'erase':
-                        self.pix[py][px] = None
-                    elif mode == 'reverse':
-                        self.pix[py][px] = None if self.pix[py][px] is not None else rgb
-                    else:
-                        self._paint(px, py, rgb, painted=painted)
+        for dx, dy in self.brush(size):
+            px, py = x + dx, y + dy
+            if 0 <= px < self.width and 0 <= py < self.height:
+                if mode == 'erase':
+                    self.pix[py][px] = None
+                elif mode == 'reverse':
+                    if (px, py) not in done:  # a wide stroke covers a pixel once
+                        done.add((px, py))
+                        self._reverse(px, py, rgb)
+                else:
+                    self._paint(px, py, rgb, painted=painted)
         self.dirty = True
 
     def line(self, x0, y0, x1, y1, rgb, mode='paint', size=1, painted=None):
         if len(rgb) == 4 and painted is None:
             painted = {}
+        done = set() if mode == 'reverse' else None
         for x, y in bresenham(x0, y0, x1, y1):
-            self.plot(x, y, rgb, mode, size, painted)
+            self.plot(x, y, rgb, mode, size, painted, done)
 
     def blend(self, x, y, rgb, alpha, painted=None):
         if 0 <= x < self.width and 0 <= y < self.height and alpha > 0.004:

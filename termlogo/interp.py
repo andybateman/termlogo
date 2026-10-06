@@ -3,7 +3,8 @@
 import sys
 
 from . import values as V
-from .errors import Incomplete, LogoError, Output, Stop, Throw
+from .arrays import LogoArray
+from .errors import Goto, Incomplete, LogoError, Output, Stop, Throw
 from .lexer import INFIX, is_number_token, to_number, tokenize
 from .registry import PRIMS
 
@@ -54,7 +55,7 @@ class Cursor:
 class Interp:
     def __init__(self, out=None, readline=None):
         # Importing here registers the primitives.
-        from . import primitives_core, primitives_data  # noqa: F401
+        from . import primitives_core, primitives_data, primitives_ext  # noqa: F401
 
         self.out = out or sys.stdout.write
         self.readline = readline or (lambda prompt='': input(prompt))
@@ -68,7 +69,12 @@ class Interp:
         self.on_start = None
         self.on_poll = None
         self.on_wait = None
-        self.plists = {}
+        self.plists = {}  # property lists: name -> {property: value}
+        self.streams = {}  # open files by name: name -> file object
+        self.reader = self.writer = None  # current SETREAD / SETWRITE streams
+        # Terminal front ends fill these in; the defaults suit plain stdin/stdout.
+        self.readchar = self.keyp = None
+        self.cursor_get = self.cursor_set = self.text_clear = None
         sys.setrecursionlimit(max(sys.getrecursionlimit(), 400000))
 
     # ---- variables -------------------------------------------------------
@@ -282,7 +288,7 @@ class Interp:
         if cur.done():
             raise LogoError('Not enough inputs')
         t = cur.next()
-        if isinstance(t, list):
+        if isinstance(t, (list, LogoArray)):
             return t
         if t == 'u-':
             return -V.num(self.primary(cur), '-')
@@ -395,7 +401,7 @@ class Interp:
                 self._drop_shadowed(base, scope)
                 self.scopes.append(scope)
                 try:
-                    result = self.run_statements(p.body, True)
+                    result = self.run_body(p.body)
                 except Output as o:
                     result = o.value
                 except Stop:
@@ -412,6 +418,27 @@ class Interp:
         finally:
             del self.scopes[base:]
             self.depth -= 1
+
+    def run_body(self, body):
+        """Run a procedure body. GOTO "tag, from anywhere inside it, resumes just
+        after the matching TAG "tag among the body's own instructions."""
+        start = 0
+        while True:
+            try:
+                return self.run_statements(body[start:], True)
+            except Goto as g:
+                for i in range(len(body) - 1):
+                    if (
+                        isinstance(body[i], str)
+                        and body[i].lower() == 'tag'
+                        and isinstance(body[i + 1], str)
+                        and body[i + 1][:1] == '"'
+                        and body[i + 1][1:].lower() == g.tag.lower()
+                    ):
+                        start = i + 2
+                        break
+                else:
+                    raise LogoError(f"Can't find tag {g.tag}") from None
 
     def _drop_shadowed(self, base, new_scope):
         """Tail calls reuse the Python stack, but Logo scope is dynamic: the callee
@@ -448,6 +475,13 @@ class Interp:
     def write(self, s):
         self.out(s)
 
+    def emit(self, s):
+        """Output from PRINT, TYPE and SHOW: the SETWRITE file if one is chosen."""
+        if self.writer is None:
+            self.out(s)
+        else:
+            self.writer.write(s)
+
     def attach_turtle(self, turtle):
         from . import primitives_turtle  # noqa: F401
 
@@ -466,4 +500,6 @@ class Interp:
             self.write('OUTPUT can only be used inside a procedure\n')
         except Stop:
             self.write('STOP can only be used inside a procedure\n')
+        except Goto as g:
+            self.write(f"Can't find tag {g.tag}\n")
         return False

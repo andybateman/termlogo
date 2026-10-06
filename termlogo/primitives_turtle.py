@@ -434,6 +434,15 @@ def setscale(it, s):
     _t(it).canvas.set_scale(float(v))
 
 
+@prim('fitwindow', 1)
+def fitwindow(it, n):
+    """Extension: scale so an n x n Logo window (try 1000) fits the canvas."""
+    v = _num(n, 'fitwindow')
+    if v <= 0:
+        raise LogoError(f"fitwindow doesn't like {V.fmt(n)} as input")
+    _t(it).canvas.fit_window(float(v))
+
+
 @prim('textscreen ts fullscreen fs splitscreen ss', 0)
 def screenmodes(it):
     pass
