@@ -1,7 +1,8 @@
 # Changelog - Terminal Logo Turtle
 
 ## [2026-10-07] - Keyboard editing of multi-line commands, stencil cut-outs and fixes
-- Put the project under git; each change below is its own commit
+- Put the project under git, with each change below as its own commit, and published it as the private GitHub repository `andybateman/termlogo`. Generated `.stl` files are git-ignored
+- README keywords reviewed for the new editing and cut-out features
 - Up and Down now move between the lines of a multi-line command, so a recalled `REPEAT` block or `TO ... END` definition can be edited from the keyboard. They step through history only from the first or last line; Ctrl-P/Ctrl-N and PageUp/PageDown always step through history. This changes one earlier behaviour: Up on a recalled multi-line command no longer jumps straight to the older entry
 - Alt+Enter adds a line break at the cursor (Shift+Enter too where the terminal reports it). Home, End, Ctrl-U and Ctrl-K act on the current line; a second Home or End goes to the start or end of the command. Edits to recalled entries are kept while moving through history. A click past the end of a wrapped row no longer lands on the next row
 - `STENCIL "name` adds `.stl` when the name does not end with it

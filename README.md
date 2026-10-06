@@ -1,9 +1,10 @@
 # Terminal Logo Turtle
 
-**Keywords:** Logo, turtle graphics, terminal, REPL, Python, interpreter, Braille graphics, Kitty graphics, Ghostty, UCBLogo, tail recursion, animation, 3D printing, stencil, STL, SVG export, education, Terrapin Logo, RGBA, colours
+**Keywords:** termlogo, Logo interpreter, turtle graphics, UCBLogo, Terrapin Logo, terminal REPL, multi-line command editing, command history, Braille graphics, Kitty graphics, Ghostty, 3D-printable stencil, STL, FILL and FILLED cut-outs, flood fill, SVG export, RGBA colours, tail recursion, animation, Python
 **Status:** Active (v0.5.0 plus unreleased changes; as at 2026-10-07)
 **Start Date:** 2026-10-06
 **Last Updated:** 2026-10-07
+**Repository:** https://github.com/andybateman/termlogo (private)
 
 ## Overview
 A Logo interpreter with turtle graphics that runs entirely in the terminal. Python's built-in `turtle` needs a Tk window and PythonTurtle needs wxPython, so neither works over SSH or in a plain terminal. This one draws with Unicode Braille characters (2x4 dots per cell) in 24-bit colour, uses only the Python standard library (Python 3.10 or later), and follows UCBLogo behaviour by default. A selectable Terrapin colour mode supports its colour tutorial without changing existing programs.
@@ -94,7 +95,7 @@ This is colour-focused compatibility, not a complete Terrapin interpreter. Brows
 An 80x24 terminal gives the REPL a 160x64 pixel Braille canvas centred on (0,0), so coordinates run about -80..80 across and -32..32 up. The canvas follows terminal resizing, both at the prompt and while running a program. The scale, turtle state, strokes and labels are retained; artwork clipped by a smaller window reappears when it grows again. `--size` fixes the canvas dimensions. Larger terminals or `--scale` give more room. WINDOW mode (the default) lets the turtle roam off-screen, as in UCBLogo.
 
 ## What works
-- **Language:** `TO ... END` (with optional `[:x default]` and `[:rest]` inputs), variables with dynamic scope (`MAKE`, `LOCAL`, `LOCALMAKE`, `THING`, `NAME`, `GLOBAL`), infix operators `+ - * / ^ = <> < > <= >=` with Logo's unary-minus spacing rule, parenthesised variadic calls, `|word with spaces|`, comments, line continuation with `~`.
+- **Language:** `TO ... END` (with optional `[:x default]` and `[:rest]` inputs), variables scoped the Logo way, so a called procedure can see its caller's (`MAKE`, `LOCAL`, `LOCALMAKE`, `THING`, `NAME`, `GLOBAL`), infix operators `+ - * / ^ = <> < > <= >=` with Logo's unary-minus spacing rule, parenthesised variadic calls, `|word with spaces|`, comments, line continuation with `~`.
 - **Control:** `REPEAT FOREVER REPCOUNT IF IFELSE TEST IFTRUE IFFALSE WHILE UNTIL DO.WHILE DO.UNTIL FOR STOP OUTPUT RUN RUNRESULT CATCH THROW ERROR WAIT BYE`, plus `FOREACH MAP FILTER FIND REDUCE APPLY INVOKE` with `?`/`?1`/`?2` slots, procedure names and `[[a b] body]` lambdas.
 - **Data:** `WORD LIST SENTENCE FPUT LPUT COMBINE FIRST LAST BUTFIRST BUTLAST ITEM COUNT MEMBER REVERSE REMOVE REMDUP PICK ISEQ RSEQ UPPERCASE LOWERCASE CHAR ASCII` and the predicates (`EMPTYP LISTP WORDP NUMBERP MEMBERP EQUALP BEFOREP NAMEP PROCEDUREP PRIMITIVEP`).
 - **Maths:** `SUM DIFFERENCE PRODUCT QUOTIENT REMAINDER MODULO INTQUOTIENT MINUS ABS INT ROUND SQRT POWER EXP LN LOG10 PI SIN COS TAN ARCTAN ARCSIN ARCCOS RANDOM RERANDOM AND OR NOT BITAND BITOR BITXOR ASHIFT` and the comparison words. Trig is in degrees.
@@ -144,16 +145,16 @@ sh -n bin/termlogo
 The lint rules cover Python errors, unused names, imports and Bugbear checks. Formatting is checked separately. The terminal tests use isolated pseudo-terminals and temporary history files; they do not drive the current terminal.
 
 ## Next Steps
-1. Recheck Kitty rendering in a restarted Ghostty session after the command-pane and text-overlay repairs; the earlier rendering was observed in the supplied screenshots (as at 2026-10-06)
+1. Recheck Kitty rendering in a restarted Ghostty session after the command-pane and text-overlay repairs; the earlier rendering was observed in the supplied screenshots (as at 2026-10-06). In the same session, try the command-pane keys by hand, and confirm that Shift+Enter adds a line in Ghostty (as at 2026-10-07 only pseudo-terminal tests have exercised them)
 2. Stencil: text via a stencil font, rounded plate corners, 3MF output, and a check for joins too thin to print
 3. Arrays, property lists and `READCHAR`
 4. Check behaviour against UCBLogo with a side-by-side conformance list
 5. Decide the install route for the MacBook setup (the `termlogo` link in `~/.oh-my-zsh/oh-my-custom/bin/` is not yet in the repo's setup script)
 
 ## Known Issues
-- A tail call whose callee does not rebind the caller's variables keeps the caller's frame (Logo scope is dynamic), so an endless loop that hops between differently named procedures grows slowly in memory. Self-recursive loops do not.
+- A tail call whose callee does not rebind the caller's variables keeps the caller's frame (in Logo a called procedure can see its caller's variables), so an endless loop that hops between differently named procedures grows slowly in memory. Self-recursive loops do not.
 - Kitty graphics have been observed in Ghostty (as at 2026-10-06). Redraws now erase stale canvas text before placing the image, while retaining intentional `LABEL` text. The latest repairs still need a visual check in a restarted session. If rendering misbehaves, run with `--render half` or set `TERMLOGO_RENDER=braille`.
-- Stencils are checked as watertight meshes, not yet test-printed or opened in a slicer.
+- Stencils, including the fill cut-outs, are checked as watertight meshes, not yet test-printed or opened in a slicer.
 - The stencil only bridges parts that are fully cut free. Parts joined to the plate by a hairline are not detected: a `FILLED` star drawn with the pen up leaves its centre attached only at five points. Drawing it with the pen down cuts those joins, and the centre is then bridged properly.
 - A `FILLED` inside another `FILLED` is painted first and then covered wherever the outer shape overlaps it.
 - REPL and script interactions are exercised in pseudo-terminals on macOS (Python 3.14), with text-cell checks for scrolling and overlays; these do not replace a physical rendering check.
