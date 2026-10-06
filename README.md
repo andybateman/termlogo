@@ -96,6 +96,15 @@ This is colour-focused compatibility, not a complete Terrapin interpreter. Brows
 
 An 80x24 terminal gives the REPL a 160x64 pixel Braille canvas centred on (0,0), so coordinates run about -80..80 across and -32..32 up. The canvas follows terminal resizing, both at the prompt and while running a program. The scale, turtle state, strokes and labels are retained; artwork clipped by a smaller window reappears when it grows again. `--size` fixes the canvas dimensions. Larger terminals or `--scale` give more room. WINDOW mode (the default) lets the turtle roam off-screen, as in UCBLogo.
 
+## Gallery
+Rendered with `./bin/termlogo examples/NAME.logo --speed 0 -o docs/images/NAME.png` (`tree` and `stencil_demo` add `--size 100x40` so the drawing is not clipped).
+
+| | | |
+|---|---|---|
+| ![flower](docs/images/flower.png)<br>`flower` | ![tree](docs/images/tree.png)<br>`tree` | ![koch](docs/images/koch.png)<br>`koch` |
+| ![spiral](docs/images/spiral.png)<br>`spiral` | ![stars](docs/images/stars.png)<br>`stars` | ![stencil_demo](docs/images/stencil_demo.png)<br>`stencil_demo` |
+| ![stencil_fill](docs/images/stencil_fill.png)<br>`stencil_fill` (FILL/FILLED cut-outs) | | |
+
 ## What works
 - **Language:** `TO ... END` (with optional `[:x default]` and `[:rest]` inputs), variables scoped the Logo way, so a called procedure can see its caller's (`MAKE`, `LOCAL`, `LOCALMAKE`, `THING`, `NAME`, `GLOBAL`), infix operators `+ - * / ^ = <> < > <= >=` with Logo's unary-minus spacing rule, parenthesised variadic calls, `|word with spaces|`, comments, line continuation with `~`.
 - **Control:** `REPEAT FOREVER REPCOUNT IF IFELSE TEST IFTRUE IFFALSE WHILE UNTIL DO.WHILE DO.UNTIL FOR STOP OUTPUT RUN RUNRESULT CATCH THROW ERROR WAIT BYE`, plus `FOREACH MAP FILTER FIND REDUCE APPLY INVOKE` with `?`/`?1`/`?2` slots, procedure names and `[[a b] body]` lambdas.
