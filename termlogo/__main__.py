@@ -204,7 +204,11 @@ def main(argv=None):
         for line in lines:
             print(line, file=sys.stderr)
     elif a.output:
-        canvas.save(a.output)
+        try:
+            canvas.save(a.output)
+        except OSError as e:
+            print(f"termlogo: Can't write {a.output}: {e.strerror}", file=sys.stderr)
+            return 1
     if not a.no_canvas and not a.output:
         sys.stdout.write(
             renderers.frame(render, canvas, turtle, color=not a.no_color and tty, standalone=True)

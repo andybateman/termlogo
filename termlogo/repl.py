@@ -815,8 +815,6 @@ def repl(
             except LogoError as e:
                 out(e.message + '\n')
             except Exception as e:  # never let a Logo program kill the REPL
-                if isinstance(e, (SystemExit,)):
-                    raise
                 out(_report(it, e))
             finally:
                 if tty and complete:

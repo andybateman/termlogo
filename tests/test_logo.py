@@ -405,6 +405,22 @@ class TurtleTests(unittest.TestCase):
         self.assertEqual([len(fill[1]) for fill in t.fills], [5, 8])
         self.assertIsNone(t.trace)
 
+    def test_colour_errors_name_the_command_that_was_used(self):
+        for source, who in (
+            ('setbg 99', 'setbackground'),
+            ('setpc "nosuchcolour', 'setpencolour'),
+            ('filled 99 [repeat 3 [fd 5 rt 120]]', 'filled'),
+            ('setpen [pendown 99]', 'setpen'),
+            ('setpalette 300 [0 0 0]', 'setpalette'),
+            ('setpalette 9 [0 0]', 'setpalette'),
+        ):
+            with self.subTest(source=source):
+                with self.assertRaisesRegex(LogoError, f"^{who} doesn't like"):
+                    run(source)
+        from termlogo.canvas import PALETTE
+
+        self.assertEqual(len(PALETTE), 16)
+
     def test_arc_label_dot(self):
         _, _, _, c = run('arc 360 10')
         self.assertTrue(any(p is not None for row in c.pix for p in row))
@@ -1113,6 +1129,29 @@ class StencilTests(unittest.TestCase):
             self.assertEqual(
                 sorted(os.listdir(d)), ['Upper.STL', 'drawing.svg.stl', 'plate.stl', 'v1.2.stl']
             )
+
+    def test_unwritable_exports_are_reported_not_raised(self):
+        import contextlib
+        import io
+
+        from termlogo.__main__ import main
+
+        with tempfile.TemporaryDirectory() as d:
+            for name in (
+                'missing/out.svg',
+                'missing/out.png',
+                'missing/out.txt',
+                'missing/out.stl',
+            ):
+                path = os.path.join(d, name)
+                with self.subTest(name=name):
+                    with self.assertRaisesRegex(LogoError, "Can't write .*out"):
+                        run('setpensize 2 fd 20 savepict "' + path)
+                    messages = io.StringIO()
+                    with contextlib.redirect_stderr(messages):
+                        rc = main(['-e', 'setpensize 2 fd 20', '-o', path, '--size', '20x5'])
+                    self.assertEqual(rc, 1)
+                    self.assertIn("termlogo: Can't write " + path, messages.getvalue())
 
     def test_savepict_stl_routes_to_the_stencil(self):
         with tempfile.TemporaryDirectory() as d:

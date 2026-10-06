@@ -313,9 +313,9 @@ class Turtle:
         try:
             n = int(float(s))
         except (ValueError, OverflowError) as e:
-            raise LogoError(f"setpencolor doesn't like {spec} as input") from e
+            raise LogoError(f"{who} doesn't like {spec} as input") from e
         if not 0 <= n < len(PALETTE):
-            raise LogoError(f"setpencolor doesn't like {spec} as input")
+            raise LogoError(f"{who} doesn't like {spec} as input")
         return PALETTE[n]
 
     def set_pen_colour(self, spec):

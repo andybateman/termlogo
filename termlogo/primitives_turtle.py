@@ -163,7 +163,7 @@ def pendownp(it):
 
 @prim('penmode', 0)
 def penmode(it):
-    return {'paint': 'paint', 'erase': 'erase', 'reverse': 'reverse'}[_t(it).pen_mode]
+    return _t(it).pen_mode
 
 
 @prim('pen', 0)
@@ -301,11 +301,14 @@ def setpalette(it, idx, rgb):
     if _t(it).colour_mode != 'ucblogo':
         raise LogoError('SETPALETTE uses the UCBLogo palette; use --colour-mode ucblogo')
     i = V.intval(idx, 'setpalette')
-    if not 0 <= i < 256 or not (isinstance(rgb, list) and len(rgb) == 3):
+    if not 0 <= i < 256:
         raise LogoError(f"setpalette doesn't like {V.fmt(idx)} as input")
+    if not (isinstance(rgb, list) and len(rgb) == 3):
+        raise LogoError(f"setpalette doesn't like {V.fmt(rgb)} as input")
+    colour = _t(it).parse_colour(rgb, 'setpalette')
     while len(PALETTE) <= i:
         PALETTE.append((0, 0, 0))
-    PALETTE[i] = _t(it).parse_colour(rgb)
+    PALETTE[i] = colour
 
 
 @prim('palette', 1)
@@ -441,8 +444,11 @@ def savepict(it, name):
     path = V.word(name, 'savepict')
     if path.lower().endswith('.stl'):
         export_stencil(it, path)
-    else:
+        return
+    try:
         _t(it).canvas.save(path)
+    except OSError as e:
+        raise LogoError(f"Can't write {path}: {e.strerror}") from e
 
 
 @prim('setspeed', 1)
