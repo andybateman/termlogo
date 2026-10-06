@@ -22,7 +22,8 @@ A Logo interpreter with turtle graphics that runs entirely in the terminal, usin
 | An unenclosed `FILL` is left out of the stencil with a warning | On screen the canvas edge can bound a fill; on the plate it would remove everything |
 | Only `STENCIL` adds a missing `.stl` | `SAVEPICT` and `-o` pick the format from the extension |
 | Generated `*.stl` files are git-ignored | They are build output |
-| Repository name `termlogo`, created private | Name chosen by Andy. Private was the cautious default and has not been confirmed |
+| Repository name `termlogo`, kept private | Both chosen by Andy (2026-10-07) |
+| One `README.md` for GitHub and the Quests project tools, with the `Keywords`, `Status` and date lines inside an HTML comment | GitHub hides comments; `projects.py`, the session hook and the skills still find the lines. Next steps live in this file, not the README |
 
 ## Open items
 Low-effort checks first. "Next session" means work for Claude with Andy.
@@ -32,25 +33,22 @@ Low-effort checks first. "Next session" means work for Claude with Andy.
 | 1 | Try the command-pane keys by hand in Ghostty: Up/Down inside a recalled block, Option+Enter, Home/End twice. Confirm whether Shift+Enter adds a line (it relies on Ghostty sending `CSI 27;2;13~`) | Andy | Small |
 | 2 | Recheck Kitty rendering in a restarted Ghostty session (carried over from 2026-10-06) | Andy | Small |
 | 3 | Open `examples/stencil_fill.logo` output in a slicer, then test-print one stencil | Andy | Small, then a print |
-| 4 | Decide how the README serves both GitHub and the Quests project system (see Outstanding questions) | Andy | Small |
-| 5 | Stencil: detect joins too thin to print. A pen-up `FILLED` star leaves its centre held at five points and is not flagged | Next session | Medium |
-| 6 | A newline key that works in every terminal: make Ctrl-J insert a line by clearing `ICRNL`. About 60 test inputs change from `\n` to `\r` | Next session | Medium, mechanical |
-| 7 | Nested `FILLED`: the inner shape is painted first and then covered by the outer one. Decide the intended result, then repaint inner shapes last | Next session | Small |
-| 8 | Stencil extras: text from `LABEL` via a stencil font, rounded plate corners, 3MF output | Next session | Large |
-| 9 | Language gaps: arrays, property lists, `READCHAR` | Next session | Medium |
-| 10 | Side-by-side conformance list against UCBLogo | Next session | Medium |
-| 11 | Install route for the MacBook setup: the `termlogo` link in `~/.oh-my-zsh/oh-my-custom/bin/` is not in the setup script | Andy | Small |
-| 12 | Wider Ruff rules (`UP`, `SIM`, `RUF`): roughly 160 style points, none of them bugs (as at 2026-10-07) | Next session | Small |
-| 13 | Tag the release (`v0.6.0`) if tags are wanted | Andy | Small |
+| 4 | Stencil: detect joins too thin to print. A pen-up `FILLED` star leaves its centre held at five points and is not flagged | Next session | Medium |
+| 5 | A newline key that works in every terminal: make Ctrl-J insert a line by clearing `ICRNL`. About 60 test inputs change from `\n` to `\r` | Next session | Medium, mechanical |
+| 6 | Nested `FILLED`: the inner shape is painted first and then covered by the outer one. Decide the intended result, then repaint inner shapes last | Next session | Small |
+| 7 | Stencil extras: text from `LABEL` via a stencil font, rounded plate corners, 3MF output | Next session | Large |
+| 8 | Language gaps: arrays, property lists, `READCHAR` | Next session | Medium |
+| 9 | Side-by-side conformance list against UCBLogo | Next session | Medium |
+| 10 | Install route for the MacBook setup: the `termlogo` link in `~/.oh-my-zsh/oh-my-custom/bin/` is not in the setup script | Andy | Small |
+| 11 | Wider Ruff rules (`UP`, `SIM`, `RUF`): roughly 160 style points, none of them bugs (as at 2026-10-07) | Next session | Small |
+| 12 | Tag the release (`v0.6.0`) if tags are wanted | Andy | Small |
 
-Can wait: 8, 9, 10 and 12.
+Can wait: 7, 8, 9 and 11.
 
 ## Outstanding questions
-1. **README for GitHub.** The `Keywords`, `Status`, `Start Date` and `Last Updated` lines exist for the Quests project system and look odd on GitHub. Recommended: keep one `README.md` and wrap those lines in an HTML comment. GitHub hides comments, while the projects tool, the session hook and the skills still find the lines. The alternatives are a second `.github/README.md` (GitHub shows it in preference, but the two files drift) or a local-only extra file (the project tooling reads `README.md` only, so it would need changing).
-2. **Public or private?** If it goes public it needs a licence file first, and the "(private)" note in the README removed.
-3. **Git credentials.** Plain `git push` fails because git uses the macOS keychain login rather than the active `gh` account. `gh auth setup-git` fixes it for good but edits the global git config.
-4. **`balls.stl`** in the project root is an earlier export, ignored by git. Keep or delete?
-5. **Older CHANGELOG entries** (the tail-call and first-build entries) describe Logo's variable scoping with a term from the banned-word list. Reword the history or leave it?
+1. **Git credentials.** Plain `git push` fails because git uses the macOS keychain login rather than the active `gh` account. `gh auth setup-git` fixes it for good but edits the global git config.
+2. **`balls.stl`** in the project root is an earlier export, ignored by git. Keep or delete?
+3. **Older CHANGELOG entries** (the tail-call and first-build entries) describe Logo's variable scoping with a term from the banned-word list. Reword the history or leave it?
 
 ## Key files
 | File | Why it matters |
@@ -74,5 +72,5 @@ cd ~/Documents/Quests/Projects/20261006_Terminal_Logo_Turtle
 ```
 - If `.venv` is missing: `python3 -m venv .venv && .venv/bin/python -m pip install -r requirements-dev.txt`.
 - Commit each change separately, with no `Co-Authored-By` trailer.
-- Before pushing, check `gh auth status` shows the personal account, then push with `git -c credential.helper= -c credential.helper='!gh auth git-credential' push` until question 3 is settled.
+- Before pushing, check `gh auth status` shows the personal account, then push with `git -c credential.helper= -c credential.helper='!gh auth git-credential' push` until question 1 is settled.
 - After a change: update `README.md` and `CHANGELOG.md` (`/wrapup`), and this file if an open item is finished or added.

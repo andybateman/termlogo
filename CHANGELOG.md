@@ -7,6 +7,7 @@
 - Put the project under git, with each change below as its own commit, and published it as the private GitHub repository `andybateman/termlogo`. Generated `.stl` files are git-ignored
 - README keywords reviewed for the new editing and cut-out features
 - Added `HANDOVER.md`: current state, decisions made, open items with owners and outstanding questions. The README files table now lists it and the `values.py`, `errors.py` and `registry.py` modules it had missed
+- The README now serves GitHub and the Quests project tools from one file: the `Keywords`, `Status` and date lines sit inside an HTML comment, which GitHub hides and the tools still read. Next Steps became a pointer to `HANDOVER.md`. The repository stays private
 - Up and Down now move between the lines of a multi-line command, so a recalled `REPEAT` block or `TO ... END` definition can be edited from the keyboard. They step through history only from the first or last line; Ctrl-P/Ctrl-N and PageUp/PageDown always step through history. This changes one earlier behaviour: Up on a recalled multi-line command no longer jumps straight to the older entry
 - Alt+Enter adds a line break at the cursor (Shift+Enter too where the terminal reports it). Home, End, Ctrl-U and Ctrl-K act on the current line; a second Home or End goes to the start or end of the command. Edits to recalled entries are kept while moving through history. A click past the end of a wrapped row no longer lands on the next row
 - `STENCIL "name` adds `.stl` when the name does not end with it

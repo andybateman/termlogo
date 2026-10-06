@@ -1,10 +1,12 @@
 # Terminal Logo Turtle
 
+<!-- Project metadata for the Quests project tools. GitHub does not show this block.
 **Keywords:** termlogo, Logo interpreter, turtle graphics, UCBLogo, Terrapin Logo, terminal REPL, multi-line command editing, command history, Braille graphics, Kitty graphics, Ghostty, 3D-printable stencil, STL, FILL and FILLED cut-outs, flood fill, SVG export, RGBA colours, tail recursion, animation, Python
 **Status:** Active (v0.6.0; as at 2026-10-07)
 **Start Date:** 2026-10-06
 **Last Updated:** 2026-10-07
 **Repository:** https://github.com/andybateman/termlogo (private)
+-->
 
 ## Overview
 A Logo interpreter with turtle graphics that runs entirely in the terminal. Python's built-in `turtle` needs a Tk window and PythonTurtle needs wxPython, so neither works over SSH or in a plain terminal. This one draws with Unicode Braille characters (2x4 dots per cell) in 24-bit colour, uses only the Python standard library (Python 3.10 or later), and follows UCBLogo behaviour by default. A selectable Terrapin colour mode supports its colour tutorial without changing existing programs.
@@ -147,13 +149,7 @@ sh -n bin/termlogo
 The lint rules cover Python errors, unused names, imports and Bugbear checks. Formatting is checked separately. The terminal tests use isolated pseudo-terminals and temporary history files; they do not drive the current terminal.
 
 ## Next Steps
-The full list, with owners and outstanding questions, is in `HANDOVER.md`.
-
-1. Recheck Kitty rendering in a restarted Ghostty session after the command-pane and text-overlay repairs; the earlier rendering was observed in the supplied screenshots (as at 2026-10-06). In the same session, try the command-pane keys by hand, and confirm that Shift+Enter adds a line in Ghostty (as at 2026-10-07 only pseudo-terminal tests have exercised them)
-2. Stencil: text via a stencil font, rounded plate corners, 3MF output, and a check for joins too thin to print
-3. Arrays, property lists and `READCHAR`
-4. Check behaviour against UCBLogo with a side-by-side conformance list
-5. Decide the install route for the MacBook setup (the `termlogo` link in `~/.oh-my-zsh/oh-my-custom/bin/` is not yet in the repo's setup script)
+Open items, with owners and outstanding questions, are in [HANDOVER.md](HANDOVER.md).
 
 ## Known Issues
 - A tail call whose callee does not rebind the caller's variables keeps the caller's frame (in Logo a called procedure can see its caller's variables), so an endless loop that hops between differently named procedures grows slowly in memory. Self-recursive loops do not.
