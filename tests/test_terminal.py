@@ -480,12 +480,82 @@ class ControlTests(unittest.TestCase):
 
     def test_multiline_history_down_restores_the_whole_draft(self):
         draft = 'repeat 1 [\nprint 9\n'
-        result, _ = self.edit_line(
-            [b'\x1b[A', b'\x1b[B', b']', b'\r'],
+        result, output = self.edit_line(
+            [b'\x1b[A', b'\x1b[A', b'\x1b[A', b'\x1b[B', b']', b'\r'],
             initial=draft,
             history=['print 42'],
         )
+        self.assertIn('? print 42', output)
         self.assertEqual(result, draft + ']')
+
+    def test_arrows_move_between_rows_of_a_recalled_multiline_command(self):
+        command = 'repeat 2 [\n  fd 10\n  rt 90\n]'
+        result, _ = self.edit_line(
+            [b'\x1b[A', b'\x1b[A', b'\x05', b'\x7f', b'\x7f', b'45', b'\x1b[B', b' ', b'\r'],
+            history=[command],
+        )
+        self.assertEqual(result, 'repeat 2 [\n  fd 10\n  rt 45\n] ')
+
+    def test_up_from_the_first_row_and_down_from_the_last_step_through_history(self):
+        result, _ = self.edit_line(
+            [b'\x1b[A', b'\x1b[A', b'\x1b[A', b'\r'], history=['print 1', 'a\nb']
+        )
+        self.assertEqual(result, 'print 1')
+        result, _ = self.edit_line(
+            [b'\x1b[A', b'\x1b[A', b'\x1b[B', b'\x1b[B', b'draft', b'\r'],
+            history=['print 1', 'a\nb'],
+        )
+        self.assertEqual(result, 'draft')
+
+    def test_history_keys_skip_the_rows_of_a_multiline_command(self):
+        history = ['print 1', 'a\nb']
+        result, _ = self.edit_line([b'\x1b[A', b'\x10', b'\r'], history=history)
+        self.assertEqual(result, 'print 1')
+        result, _ = self.edit_line([b'\x1b[5~', b'\x1b[5~', b'\x1b[6~', b'\r'], history=history)
+        self.assertEqual(result, 'a\nb')
+        result, _ = self.edit_line([b'\x10', b'\x10', b'\x0e', b'\x0e', b'\r'], history=history)
+        self.assertEqual(result, '')
+
+    def test_edits_to_recalled_commands_survive_moving_through_history(self):
+        result, _ = self.edit_line(
+            [b'draft', b'\x1b[A', b'2', b'\x1b[B', b'!', b'\x1b[A', b'\r'], history=['print 1']
+        )
+        self.assertEqual(result, 'print 12')
+
+    def test_vertical_moves_keep_their_column_across_a_short_row(self):
+        result, _ = self.edit_line(
+            [b'\x1b[A', b'\x1b[A', b'X', b'\r'], initial='abcdef\nxy\nabcdef'
+        )
+        self.assertEqual(result, 'abcdefX\nxy\nabcdef')
+        result, _ = self.edit_line([b'\x1b[A', b'X', b'\r'], initial='abcdef\nxy\nabcdef')
+        self.assertEqual(result, 'abcdef\nxyX\nabcdef')
+
+    def test_arrows_move_between_wrapped_rows_without_sticking(self):
+        line = '0123456789012345678901234567890123'
+        result, _ = self.edit_line([line.encode(), b'\x1b[A', b'\x1b[A', b'X', b'\r'])
+        self.assertEqual(result, line[:16] + 'X' + line[16:])
+        result, _ = self.edit_line([line[:30].encode(), b'\x1b[A', b'\x1b[B', b'X', b'\r'])
+        self.assertEqual(result, line[:30] + 'X')
+
+    def test_alt_and_shift_enter_add_a_line_instead_of_running(self):
+        for key in (b'\x1b\r', b'\x1b\n', b'\x1b[13;2u', b'\x1b[27;2;13~'):
+            with self.subTest(key=key):
+                result, output = self.edit_line([b'fd 10rt 90', b'\x1b[<0;8;17M', key, b'\r'])
+                self.assertEqual(result, 'fd 10\nrt 90')
+                self.assertIn('> rt 90', output)
+
+    def test_home_and_end_work_by_line_then_by_command(self):
+        events = [b'\x01', b'X', b'\x01', b'\x01', b'Y', b'\x05', b'Z', b'\x05', b'W', b'\r']
+        result, _ = self.edit_line(events, initial='ab\ncd')
+        self.assertEqual(result, 'YabZ\nXcdW')
+
+    def test_kill_keys_stay_within_the_current_line(self):
+        result, _ = self.edit_line([b'\x1b[A', b'\x15', b'\r'], initial='ab\ncd\nef')
+        self.assertEqual(result, 'ab\n\nef')
+        result, _ = self.edit_line([b'\x1b[A', b'\x15', b'\x0b', b'\r'], initial='ab\ncd\nef')
+        self.assertEqual(result, 'ab\nef')
+        result, _ = self.edit_line([b'\x1b[A', b'\x02', b'\x0b', b'\r'], initial='ab\ncd\nef')
+        self.assertEqual(result, 'ab\nc\nef')
 
     def test_mouse_edits_earlier_line_of_multiline_command(self):
         result, output = self.edit_line(
@@ -501,7 +571,7 @@ class ControlTests(unittest.TestCase):
 
     def test_oversized_command_scrolls_to_the_editing_cursor(self):
         source = '\n'.join(f'print {number}' for number in range(36))
-        result, output = self.edit_line([b'\x01', b'X', b'\r'], initial=source)
+        result, output = self.edit_line([b'\x01', b'\x01', b'X', b'\r'], initial=source)
         self.assertEqual(result, 'X' + source)
         screen = TextScreen()
         screen.feed(output)
@@ -889,7 +959,7 @@ class LiveTerminalTests(unittest.TestCase):
         terminal.send(']\n')
         terminal.expect(b'42\x1b[K')
         terminal.expect(b'? ')
-        terminal.send(b'\x1b[A\x01')
+        terminal.send(b'\x1b[A\x01\x01')
         terminal.expect(b'> print 42 ; keep this comment')
         terminal.expect(b'> ]')
         terminal.expect(b'\x1b[21;1H\r\x1b[2C')
@@ -909,10 +979,39 @@ class LiveTerminalTests(unittest.TestCase):
         terminal.expect(b'42\x1b[K')
         terminal.expect(b'? ')
         self.submit_incomplete(terminal, 'repeat 1 [')
-        terminal.send(b'\x1b[A\n')
-        terminal.expect(b'42\x1b[K')
-        terminal.expect(b'? ')
+        terminal.send(b'\x1b[A\x1b[A')
+        terminal.expect(b'\x1b[23;1H\r\x1b[K? print 42')
+        terminal.send('\n')
+        terminal.expect_prompt()
         self.assertNotIn(b'Internal error', terminal.output)
+        terminal.send('bye\n')
+        self.assertEqual(terminal.wait(), 0)
+        with open(Path(terminal.home.name) / '.termlogo_history') as history_file:
+            history_file.readline()
+            self.assertEqual(json.load(history_file), ['print 42', 'print 42', 'bye'])
+
+    def test_arrow_keys_edit_an_earlier_line_of_a_recalled_command(self):
+        terminal = self.start('--speed', '0')
+        self.submit_incomplete(terminal, 'repeat 1 [')
+        self.submit_incomplete(terminal, 'print 42')
+        terminal.send(']\n')
+        terminal.expect(b'42\x1b[K')
+        terminal.expect_prompt()
+        terminal.send(b'\x1b[A')
+        terminal.expect(b'> ]')
+        terminal.send(b'\x1b[A\x050')
+        terminal.expect(b'\x1b[22;1H\r\x1b[K> print 420')
+        terminal.send(b'\x1b\rprint 7')
+        terminal.expect(b'\x1b[22;1H\r\x1b[K> print 7')
+        terminal.send('\n')
+        terminal.expect(b'420\x1b[K')
+        terminal.expect(b'7\x1b[K')
+        terminal.send('bye\n')
+        self.assertEqual(terminal.wait(), 0)
+        with open(Path(terminal.home.name) / '.termlogo_history') as history_file:
+            history_file.readline()
+            commands = json.load(history_file)
+        self.assertEqual(commands[1], 'repeat 1 [\nprint 420\nprint 7\n]')
 
     def test_multiline_history_is_loaded_from_disk_as_one_command(self):
         command = 'repeat 1 [\nprint 42 ; keep this comment\n]'

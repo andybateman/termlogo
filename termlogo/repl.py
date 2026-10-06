@@ -27,6 +27,9 @@ HIDE, SHOW = '\x1b[?25l', '\x1b[?25h'
 MOUSE_ON, MOUSE_OFF = '\x1b[?1002h\x1b[?1006h', '\x1b[?1002l\x1b[?1006l'
 PASTE_ON, PASTE_OFF = '\x1b[?2004h', '\x1b[?2004l'
 PASTE_START, PASTE_END = b'\x1b[200~', b'\x1b[201~'
+# Alt+Enter, and Shift+Enter in terminals that report it (Ghostty, Kitty, xterm):
+# these add a line break to the command where Enter alone would run it.
+NEWLINE_KEYS = (b'\x1b\r', b'\x1b\n', b'\x1b[13;2u', b'\x1b[27;2;13~')
 
 
 def _terminal_size(stream=None):
@@ -216,11 +219,46 @@ class DrawingControls:
             if readline is not None and it is not None
             else []
         )
+        entries = [*history, initial]  # the last entry is the unfinished draft
         line, pos, hist = initial, len(initial), len(history)
-        draft = initial
+        goal = None  # display column kept while moving up and down
         view_start = 0
         rows = []
         decoder = codecs.getincrementaldecoder(sys.stdin.encoding or 'utf-8')()
+
+        def cursor_row():
+            return bisect_right([row[0] for row in rows], pos) - 1
+
+        def position_at(row, cell):
+            """Offset in the command for a display row and a 0-based screen column."""
+            start, end, prefix = rows[row]
+            indent = _columns(prefix)[-1]
+            offset = bisect_right(_columns(line[start:end], indent), max(0, cell - indent)) - 1
+            if row + 1 < len(rows) and rows[row + 1][0] == end:
+                offset = min(offset, end - start - 1)  # a wrapped row ends before the next
+            return start + offset
+
+        def move_row(step):
+            """Move the cursor one display row. False at the first or last row."""
+            nonlocal pos, goal
+            current = cursor_row()
+            if not 0 <= current + step < len(rows):
+                return False
+            if goal is None:
+                start, _, prefix = rows[current]
+                goal = _columns(prefix + line[start:pos])[-1]
+            pos = position_at(current + step, goal)
+            return True
+
+        def recall(step):
+            """Step through history, keeping edits made to each entry on the way."""
+            nonlocal line, pos, hist
+            target = max(0, min(len(history), hist + step))
+            if target != hist:
+                entries[hist] = line
+                hist = target
+                line = entries[hist]
+                pos = len(line)
 
         def show_prompt():
             nonlocal view_start, rows
@@ -252,8 +290,8 @@ class DrawingControls:
                 if self.display is not None:
                     sys.stdout.write(f'\x1b[{self.display.prompt_row + offset};1H')
                 visible = _expand_tabs(prefix + line[start:end])
-                end = bisect_right(_columns(visible), max(1, cols - 1)) - 1
-                sys.stdout.write('\r\x1b[K' + visible[:end])
+                limit = bisect_right(_columns(visible), max(1, cols - 1)) - 1
+                sys.stdout.write('\r\x1b[K' + visible[:limit])
             start, _, prefix = rows[cursor_row]
             cursor = min(cols - 1, _columns(prefix + line[start:pos])[-1])
             if self.display is not None:
@@ -284,17 +322,10 @@ class DrawingControls:
                             and col <= self.display.cols
                         ):
                             if not code & 32:
-                                start, end, prefix = rows[
-                                    view_start + row - self.display.prompt_row
-                                ]
-                                cell = max(0, col - 1 - _columns(prefix)[-1])
-                                pos = (
-                                    start
-                                    + bisect_right(
-                                        _columns(line[start:end], _columns(prefix)[-1]), cell
-                                    )
-                                    - 1
+                                pos = position_at(
+                                    view_start + row - self.display.prompt_row, col - 1
                                 )
+                                goal = None
                                 show_prompt()
                         elif self._mouse(event[3:]):
                             self.display.draw()
@@ -304,10 +335,17 @@ class DrawingControls:
                     return line
                 if event in (b'\x03', b'\x1b'):
                     raise KeyboardInterrupt
+                line_start = line.rfind('\n', 0, pos) + 1
+                line_end = line.find('\n', pos)
+                line_end = len(line) if line_end < 0 else line_end
+                moved_row = False
                 if event == PASTE_START:
                     text = self.read_paste()
                     line = line[:pos] + text + line[pos:]
                     pos += len(text)
+                elif event in NEWLINE_KEYS:
+                    line = line[:pos] + '\n' + line[pos:]
+                    pos += 1
                 elif event == b'\x04':
                     if not line:
                         raise EOFError
@@ -321,21 +359,28 @@ class DrawingControls:
                 elif event in (b'\x1b[C', b'\x06'):
                     pos = min(len(line), pos + 1)
                 elif event in (b'\x1b[H', b'\x1bOH', b'\x1b[1~', b'\x01'):
-                    pos = 0
+                    # Start of this line; a second press goes to the start of the command.
+                    pos = 0 if pos == line_start else line_start
                 elif event in (b'\x1b[F', b'\x1bOF', b'\x1b[4~', b'\x05'):
-                    pos = len(line)
+                    pos = len(line) if pos == line_end else line_end
                 elif event == b'\x1b[3~':
                     line = line[:pos] + line[pos + 1 :]
                 elif event == b'\x15':
-                    line, pos = line[pos:], 0
+                    line, pos = line[:line_start] + line[pos:], line_start
                 elif event == b'\x0b':
-                    line = line[:pos]
+                    # To the end of this line, or the line break itself when already there.
+                    line = line[:pos] + line[line_end if pos < line_end else pos + 1 :]
                 elif event in (b'\x1b[A', b'\x1b[B'):
-                    if hist == len(history):
-                        draft = line
-                    hist = max(0, min(len(history), hist + (-1 if event == b'\x1b[A' else 1)))
-                    line = history[hist] if hist < len(history) else draft
-                    pos = len(line)
+                    # Inside a multi-line command the arrows move between its rows;
+                    # from the first or last row they step through history.
+                    step = -1 if event == b'\x1b[A' else 1
+                    moved_row = move_row(step)
+                    if not moved_row:
+                        recall(step)
+                elif event in (b'\x10', b'\x1b[5~'):
+                    recall(-1)
+                elif event in (b'\x0e', b'\x1b[6~'):
+                    recall(1)
                 elif event == b'\t' and it is not None:
                     start = pos
                     while start and line[start - 1] not in ' \t\n[]()"':
@@ -349,6 +394,8 @@ class DrawingControls:
                     text = decoder.decode(event)
                     line = line[:pos] + text + line[pos:]
                     pos += len(text)
+                if not moved_row:
+                    goal = None
                 show_prompt()
         finally:
             sys.stdout.write(PASTE_OFF)
