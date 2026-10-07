@@ -109,10 +109,10 @@ This is colour-focused compatibility, not a complete Terrapin interpreter. Brows
 
 An 80x24 terminal gives the REPL a 160x64 pixel Braille canvas centred on (0,0), so coordinates run about -80..80 across and -32..32 up. The canvas follows terminal resizing, both at the prompt and while running a program. The scale, turtle state, strokes and labels are retained; artwork clipped by a smaller window reappears when it grows again. `--size` fixes the canvas dimensions. Larger terminals or `--scale` give more room. WINDOW mode (the default) lets the turtle roam off-screen, as in UCBLogo.
 
-**Textbook coordinates:** programs written for a 1000x1000 Logo window run unchanged with `--fit 1000` (or `FITWINDOW 1000`), which scales the drawing so that window fits the canvas, whatever its size. The fit is kept when the terminal is resized. Pen sizes are in pixels and are not scaled by it. `--scale` and `SETSCALE` remain for choosing a fixed number of pixels per step.
+**Textbook coordinates:** programs written for a 1000x1000 Logo window run unchanged with `--fit 1000` (or `FITWINDOW 1000`), which scales the drawing so that window fits the canvas, whatever its size. The fit is kept when the terminal is resized. Pen sizes are in pixels and are not scaled by it. `--scale` and `SETSCALE` remain for choosing a fixed number of pixels per step; `SETSCALE` also ends a `FITWINDOW`.
 
 ## Gallery
-Rendered with `./bin/termlogo examples/NAME.logo --speed 0 -o docs/images/NAME.png` (`tree` and `stencil_demo` add `--size 100x40` so the drawing is not clipped).
+Rendered with `./bin/termlogo examples/NAME.logo --speed 0 --size 100x40 -o docs/images/NAME.png`. The examples start with `FITWINDOW`, so they fit any canvas size.
 
 | | | |
 |---|---|---|
@@ -137,7 +137,7 @@ Rendered with `./bin/termlogo examples/NAME.logo --speed 0 -o docs/images/NAME.p
 - **Extensions:** `SETSCALE n` (same as `--scale`), `FITWINDOW n` (same as `--fit`), `SETSPEED`/`SPEED`, `STENCIL`, `SAVEPICT "file.svg|png|txt|stl`, `HELP`, `VERSION`.
 
 ## Browser version
-The same Python engine runs in a web page through [Pyodide](https://pyodide.org/) (Python compiled to WebAssembly), in a Web Worker so a long drawing never freezes the page. It has an editor, a command line with history, an example menu, a speed control, a UCBLogo/Terrapin colour switch, and PNG, SVG and STL stencil downloads. Nothing is sent to a server.
+The same Python engine runs in a web page through [Pyodide](https://pyodide.org/) (Python compiled to WebAssembly), in a Web Worker so a long drawing never freezes the page. Nothing is sent to a server.
 ```bash
 python3 tools/build_web.py                 # builds dist/web (about 0.1 MB)
 python3 -m http.server -d dist/web         # then open http://localhost:8000
@@ -150,19 +150,27 @@ tools/publish_site.sh
 ```
 The page shows the version, commit and date it was built from under its title, and `https://www.andybateman.com/termlogo/config.json` holds the same, so you can tell at a glance whether the live copy is behind this repository. The build is reproducible: the same commit gives the same files, so publishing twice changes nothing. GitHub Pages lets browsers keep files for ten minutes, so every file the page loads is requested as `name?v=STAMP` (a hash of the contents). After a publish, a browser that already has the old `index.html` can show the old page for up to ten minutes (a hard refresh, Cmd+Shift+R, skips the wait); everything else it loads is then fresh.
 
-**What it does:**
+**The page:**
+- The editor, the `?` command line (with history) and the output are on the left; the canvas fills the rest. The canvas follows the size of its pane, one pixel per turtle step, so a bigger window gives more room to draw (up to 1920x1200 pixels; a larger pane stretches that picture). For more room, drag the divider between the editor and the canvas (double-click it to put it back), press **Expand canvas** to hide the editor, or use the full-screen button under the canvas. On a phone the canvas comes first, with the editor below it.
+- The toolbar has Run and Stop, **Examples** (picking one runs it), **Open** and **Save** for `.logo` files, **Share**, the speed, the UCBLogo/Terrapin colour switch, Clear (`CS`) and Reset (a fresh workspace). Ctrl+Enter (⌘+Enter) runs the program and Esc stops it.
+- Under the canvas: the status, which repeats the last error for when the editor is hidden; the turtle coordinates under the pointer; a **Zoom** chip when `FITWINDOW` or `SETSCALE` has changed the scale (click it for `SETSCALE 1`); and the downloads.
+- **Help** explains the basics and the keys, and searches a list of every command (the same table as `HELP`).
+- The examples start with `FITWINDOW`, so they fill whatever canvas they get.
 - Pictures are sent as the rows that changed, and the turtle and `LABEL` text are drawn by the page, so animation keeps up with the set speed.
 - PNG downloads include `LABEL` text (not the turtle), SVG downloads include it as text, and STL stencils work as in the terminal.
-- **Share link** copies an address that holds your program after the `#` (compressed), so it never reaches a server. Opening such a link loads the program into the editor but does not run it.
-- `READWORD`, `READLIST`, `READCHAR` and `KEYP` work: lines come from the box under the editor and keys from the canvas (click it first). **Stop** and **Esc** interrupt the program and keep your procedures and variables.
+- **Share** copies an address that holds your program after the `#` (compressed), so it never reaches a server. Opening such a link loads the program into the editor but does not run it.
+- `READWORD`, `READLIST`, `READCHAR` and `KEYP` work: lines come from the `?` box and keys from the canvas (click it first). **Stop** and **Esc** interrupt the program and keep your procedures and variables.
 
 Typing into a running program and a gentle Stop need the page to be "cross-origin isolated", which GitHub Pages cannot arrange with headers. `web/coi-sw.js` is a small service worker that adds them, which costs one automatic reload on the first visit. If the browser will not run it (some private windows), or Python will not start with it, the page drops back to the plain mode and remembers that:
 - input commands see the end of input, and Stop replaces Python, so procedures and variables are lost (the program text stays).
 - `?nocoi` in the address forces this mode.
 
-Still different from the terminal: `SAVEPICT` writes to a hidden in-memory folder (use the download buttons), and the canvas is 800x600 pixels with one pixel per step (`FITWINDOW 1000` fits a textbook window).
+Still different from the terminal:
+- `SAVEPICT` writes to a hidden in-memory folder (use the download buttons).
+- The canvas changes size between runs. A window resized while a program runs stretches the picture until the run ends.
+- Recursion that is not a tail call reports `Stack overflow` much sooner than in the terminal: after about 140 levels when the call is inside an expression (`output :n + sum :n - 1`), and about 400 otherwise, because Python in the browser crashes if an error unwinds from deeper. Tail calls are unaffected. If Python does stop unexpectedly, the page restarts it and says so: procedures and variables are lost, and the program stays in the editor.
 
-`tools/web_smoke.mjs` is an optional end-to-end check (Node, Chromium and `playwright-core`) that starts Python in the page and exercises every example, exports, Stop and the colour modes.
+`tools/web_smoke.mjs` is an optional end-to-end check (Node, Chromium and `playwright-core`) that starts Python in the page and works through it as a person would: every example, the command line, downloads, Open and Save, sharing, input commands, Stop, the colour modes, the divider, full screen, and the layout on a small laptop and a phone.
 
 ## Not implemented yet
 - Text-screen windows beyond `CURSOR`/`SETCURSOR`, `DRIBBLE`, `SETPREFIX` and directory commands (`DIR`, `FILES`), and `EDIT`.
@@ -192,10 +200,10 @@ Still different from the terminal: `SAVEPICT` writes to a hidden in-memory folde
 | `termlogo/values.py`, `errors.py`, `registry.py` | Logo data helpers, error and control-flow exceptions, the primitive registry |
 | `bin/termlogo` | Launcher that runs from this folder without installing |
 | `Formula/termlogo.rb` | Homebrew formula (tap this repository by URL) |
-| `web/` | The browser page: `index.html`, `app.js` (editor, canvas, buttons, sharing), `worker.js` (Pyodide and input), `coi-sw.js` (service worker for shared memory), `style.css`, `favicon.svg` |
+| `web/` | The browser page: `index.html` (layout and Help), `app.js` (editor, canvas, divider, buttons, sharing), `worker.js` (Pyodide and input), `coi-sw.js` (service worker for shared memory), `style.css`, `favicon.svg` |
 | `tools/publish_site.sh` | Builds the browser version into the `andybateman.github.io` checkout, commits and pushes it |
 | `tools/update_formula.sh` | Points the Homebrew formula at a release (run it once the release's tag exists) |
-| `tools/build_web.py` | Builds `dist/web`: the page, the package as `termlogo.zip`, examples, and optionally a copy of Pyodide |
+| `tools/build_web.py` | Builds `dist/web`: the page, the package as `termlogo.zip`, the examples, the Help command list (`help.json`), and optionally a copy of Pyodide |
 | `tools/web_smoke.mjs` | Optional end-to-end check of the browser version |
 | `tools/build_pyz.sh` | Builds the single-file `dist/termlogo.pyz` (git-ignored) |
 | `examples/` | `flower`, `tree`, `koch`, `spiral`, `stars`, `stencil_demo`, `stencil_fill`, `ab_logo` |
