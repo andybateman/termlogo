@@ -138,6 +138,9 @@ Rendered with `./bin/termlogo examples/NAME.logo --speed 0 --size 100x40 -o docs
 
 ## Browser version
 The same Python engine runs in a web page through [Pyodide](https://pyodide.org/) (Python compiled to WebAssembly), in a Web Worker so a long drawing never freezes the page. Nothing is sent to a server.
+
+<img src="docs/images/browser.png" alt="The browser version in a laptop window: the editor, command line and output on the left, and the default flower program drawn on a black canvas that fills the rest" width="74%"> <img src="docs/images/browser-phone.png" alt="The browser version on a phone: the canvas at the top, the status bar and download buttons under it, and the editor below" width="21%">
+
 ```bash
 python3 tools/build_web.py                 # builds dist/web (about 0.1 MB)
 python3 -m http.server -d dist/web         # then open http://localhost:8000
@@ -170,7 +173,7 @@ Still different from the terminal:
 - The canvas changes size between runs. A window resized while a program runs stretches the picture until the run ends.
 - Recursion that is not a tail call reports `Stack overflow` much sooner than in the terminal: after about 140 levels when the call is inside an expression (`output :n + sum :n - 1`), and about 400 otherwise, because Python in the browser crashes if an error unwinds from deeper. Tail calls are unaffected. If Python does stop unexpectedly, the page restarts it and says so: procedures and variables are lost, and the program stays in the editor.
 
-`tools/web_smoke.mjs` is an optional end-to-end check (Node, Chromium and `playwright-core`) that starts Python in the page and works through it as a person would: every example, the command line, downloads, Open and Save, sharing, input commands, Stop, the colour modes, the divider, full screen, and the layout on a small laptop and a phone.
+`tools/web_smoke.mjs` is an optional end-to-end check (Node, Chromium and `playwright-core`) that starts Python in the page and works through it as a person would: every example, the command line, downloads, Open and Save, sharing, input commands, Stop, the colour modes, the divider, full screen, and the layout on a small laptop and a phone. `tools/web_screenshots.mjs`, with the same setup, retakes the two screenshots above after the page changes.
 
 ## Not implemented yet
 - Text-screen windows beyond `CURSOR`/`SETCURSOR`, `DRIBBLE`, `SETPREFIX` and directory commands (`DIR`, `FILES`), and `EDIT`.
@@ -205,6 +208,7 @@ Still different from the terminal:
 | `tools/update_formula.sh` | Points the Homebrew formula at a release (run it once the release's tag exists) |
 | `tools/build_web.py` | Builds `dist/web`: the page, the package as `termlogo.zip`, the examples, the Help command list (`help.json`), and optionally a copy of Pyodide |
 | `tools/web_smoke.mjs` | Optional end-to-end check of the browser version |
+| `tools/web_screenshots.mjs` | Retakes the browser screenshots in `docs/images/` (`browser.png`, `browser-phone.png`) |
 | `tools/build_pyz.sh` | Builds the single-file `dist/termlogo.pyz` (git-ignored) |
 | `examples/` | `flower`, `tree`, `koch`, `spiral`, `stars`, `stencil_demo`, `stencil_fill`, `ab_logo` |
 | `tests/test_logo.py` | Unit tests |

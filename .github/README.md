@@ -4,7 +4,9 @@ A Logo interpreter with turtle graphics that runs entirely in the terminal, so i
 
 **[Try it in your browser](https://www.andybateman.com/termlogo/)**, with nothing to install, or run it in your terminal as below.
 
-![A flower drawn in the terminal](../docs/images/flower.png)
+<img src="../docs/images/browser.png" alt="The browser version: the editor on the left and a flower drawn on the canvas" width="54%"> <img src="../docs/images/flower.png" alt="A flower drawn in the terminal" width="42%">
+
+*The browser version, and a drawing in the terminal.*
 
 ## Get started
 You need Python 3.10 or later. There is nothing to install. Each [release](https://github.com/andybateman/termlogo/releases) also has `termlogo.pyz`, a single file you can download, `chmod +x` and run.

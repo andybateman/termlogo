@@ -1,5 +1,9 @@
 # Changelog - Terminal Logo Turtle
 
+## [2026-10-07] - Screenshots of the browser version in the docs
+- The README's Browser version section now shows the page in a laptop window and on a phone (`docs/images/browser.png` and `docs/images/browser-phone.png`), and the GitHub front page shows the laptop view beside a terminal drawing
+- `tools/web_screenshots.mjs` retakes both after the page changes, with the same setup as `tools/web_smoke.mjs`: the default program at Instant speed, in light mode and a fresh browser profile
+
 ## [2026-10-07] - Browser page redesign: more room for the canvas
 - The page now fills the window: the editor, the `?` command line and the output on the left, and the canvas filling the rest. The canvas follows its pane's size (one pixel per turtle step, up to 1920x1200 pixels, stretched beyond that) instead of a fixed 800x600. The divider between the editor and the canvas can be dragged, or moved with the arrow keys; double-clicking it puts it back, and its place is remembered. **Expand canvas** hides the editor, and a full-screen button shows the canvas alone. On phones the canvas comes first and the toolbar is one row that scrolls sideways
 - The toolbar stays on one row from 1024 pixels wide (below 1180 the Expand button shows just its icon), and the bar under the canvas tightens as its pane narrows (a CSS container query)
