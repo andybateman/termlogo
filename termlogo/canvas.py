@@ -7,6 +7,7 @@ cell wide, so a drawing keeps its physical size whichever renderer is used.
 """
 
 import base64
+import itertools
 import math
 import struct
 import zlib
@@ -148,8 +149,10 @@ class Canvas:
         self.fit = size
         self.set_scale(min(self.width, self.height) / size / self.base_scale)
 
-    def copy_to(self, target):
-        """Copy picture contents to a resized canvas, preserving Logo coordinates."""
+    def copy_to(self, target, shift=True):
+        """Copy picture contents to a resized canvas, preserving Logo coordinates. At an
+        unchanged scale every pixel moves by the same whole number of pixels, so rows are
+        copied as slices (`shift`); otherwise, or with shift=False, pixel by pixel."""
         target.bg = self.bg
         target.alpha = self.alpha
         if self.fit is not None:
@@ -175,13 +178,18 @@ class Canvas:
 
         for (wx, wy), (rgb, span) in self._cropped.items():
             copy_pixel(wx, wy, rgb, span)
-        for y, row in enumerate(self.pix):
-            wy = (self.origin_y - y) / self.scale
-            for x, rgb in enumerate(row):
-                if rgb is None:
-                    continue
-                wx = (x - self.origin_x) / self.scale
-                copy_pixel(wx, wy, rgb, 1 / self.scale)
+        if shift and target.scale == self.scale:
+            dx = round(target.origin_x - self.origin_x)
+            dy = round(target.origin_y - self.origin_y)
+            self._shift_pixels(target, dx, dy)
+        else:
+            for y, row in enumerate(self.pix):
+                wy = (self.origin_y - y) / self.scale
+                for x, rgb in enumerate(row):
+                    if rgb is None:
+                        continue
+                    wx = (x - self.origin_x) / self.scale
+                    copy_pixel(wx, wy, rgb, 1 / self.scale)
         for col, row, text, rgb in self.labels:
             wx = (col * self.cell[0] + self.cell[0] / 2 - self.origin_x) / self.scale
             wy = (self.origin_y - row * self.cell[1] - self.cell[1] / 2) / self.scale
@@ -191,6 +199,34 @@ class Canvas:
             target.labels.append((ncol, nrow, text, rgb))
         target.dirty = True
         target.mark_all_dirty()
+
+    def _shift_pixels(self, target, dx, dy):
+        """The pixel part of copy_to at an unchanged scale: pixel (x, y) lands on
+        (x + dx, y + dy). Pixels that land outside the target go to its _cropped store,
+        exactly as the general path puts them, so they return if it grows again."""
+        x0, x1 = max(0, -dx), min(self.width, target.width - dx)  # columns that land inside
+        span = 1 / self.scale
+        for y, row in enumerate(self.pix):
+            if row.count(None) == self.width:
+                continue
+            ty = y + dy
+            inside = 0 <= ty < target.height and x0 < x1
+            if inside:
+                dest = target.pix[ty]
+                if dest[x0 + dx : x1 + dx].count(None) == x1 - x0:
+                    dest[x0 + dx : x1 + dx] = row[x0:x1]  # the usual case: an empty row
+                else:
+                    for x in range(x0, x1):
+                        if row[x] is not None:
+                            dest[x + dx] = row[x]
+                outside = itertools.chain(range(0, x0), range(x1, self.width))
+            else:
+                outside = range(self.width)
+            wy = (self.origin_y - y) / self.scale
+            for x in outside:
+                rgb = row[x]
+                if rgb is not None:
+                    target._cropped[((x - self.origin_x) / self.scale, wy)] = (rgb, span)
 
     # ---- coordinates -----------------------------------------------------
     def to_pixel(self, x, y):

@@ -294,6 +294,33 @@ class ResizeTests(unittest.TestCase):
         self.assertAlmostEqual(turtle.x, -10)
         self.assertAlmostEqual(turtle.y, -10)
 
+    def test_shifting_rows_matches_copying_pixel_by_pixel(self):
+        import random
+
+        rng = random.Random(7)
+        for cell in ((2, 4), (1, 2), (2, 2), (10, 20)):
+            source = Canvas(30, 12, cell=cell)
+            for _ in range(400):
+                source.plot(
+                    rng.randrange(source.width),
+                    rng.randrange(source.height),
+                    (rng.randrange(256), 0, 0),
+                )
+            # some picture already kept outside, from an earlier shrink
+            source._cropped[(1000.0, 3.0)] = ((1, 2, 3), 1 / source.scale)
+            for cols, rows in ((40, 20), (20, 8), (31, 13), (5, 30), (30, 12)):
+                with self.subTest(cell=cell, size=(cols, rows)):
+                    fast, slow = Canvas(cols, rows, cell=cell), Canvas(cols, rows, cell=cell)
+                    source.copy_to(fast)
+                    source.copy_to(slow, shift=False)
+                    self.assertEqual(fast.pix, slow.pix)
+                    self.assertEqual(fast._cropped, slow._cropped)
+                    self.assertEqual((fast.origin_x, fast.origin_y), (slow.origin_x, slow.origin_y))
+                    # and growing back restores the original picture
+                    again = Canvas(30, 12, cell=cell)
+                    fast.copy_to(again)
+                    self.assertEqual(again.pix, source.pix)
+
     def test_resize_keeps_a_fitted_window(self):
         it, turtle, display = self.build()
         it.eval_source('fitwindow 1000')
