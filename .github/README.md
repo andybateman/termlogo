@@ -20,6 +20,7 @@ On macOS or Linux with Homebrew:
 
 ```bash
 brew tap andybateman/termlogo https://github.com/andybateman/termlogo
+brew trust --formula andybateman/termlogo/termlogo   # newer Homebrew refuses untrusted taps
 brew install termlogo
 ```
 

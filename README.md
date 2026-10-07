@@ -28,6 +28,7 @@ python3 -m unittest discover -s tests
 **Homebrew:** the formula lives in this repository, so tap it by URL and install:
 ```bash
 brew tap andybateman/termlogo https://github.com/andybateman/termlogo
+brew trust --formula andybateman/termlogo/termlogo   # newer Homebrew refuses untrusted taps
 brew install termlogo
 ```
 It installs the source with Homebrew's Python 3.13 and a `termlogo` launcher. Each release needs `Formula/termlogo.rb` updated with the new tag URL and `sha256` (`curl -sL <tarball URL> | shasum -a 256`).

@@ -44,7 +44,7 @@ Low-effort checks first. "Next session" means follow-up work in a later session.
 | 9 | Side-by-side conformance list against UCBLogo | Next session | Medium |
 | 10 | Install route for the MacBook setup: the `termlogo` link in `~/.oh-my-zsh/oh-my-custom/bin/` is not in the setup script | Andy | Small |
 | 11 | Wider Ruff rules (`UP`, `SIM`, `RUF`): roughly 160 style points, none of them bugs (as at 2026-10-07) | Next session | Small |
-| 15 | Check the Homebrew formula on a Mac (`brew tap andybateman/termlogo https://github.com/andybateman/termlogo`, `brew install --build-from-source termlogo`, `brew test termlogo`). Update `Formula/termlogo.rb` (tag URL and `sha256`) with every release | Andy | Small |
+| 15 | Update `Formula/termlogo.rb` (tag URL and `sha256`) with every release. The formula was checked on a Mac for v1.0.0 | Andy | Small, each release |
 | 14 | Standalone per-platform binaries (PyInstaller or Nuitka via a GitHub Actions matrix on release tags). Needs a token with workflow scope, and `readline` history checked on macOS and Linux. macOS needs signing and notarising to avoid the Gatekeeper warning | Next session | Medium |
 | 13 | Try the new REPL features by hand in Ghostty: `READCHAR` and `KEYP` while a program runs, `SETCURSOR`, `--fit 1000` after resizing the window, and the round Braille pen. | Andy | Small |
 
