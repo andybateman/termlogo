@@ -162,7 +162,7 @@ Rendered with `./bin/termlogo examples/NAME.logo --speed 0 -o docs/images/NAME.p
 | `bin/termlogo` | Launcher that runs from this folder without installing |
 | `Formula/termlogo.rb` | Homebrew formula (tap this repository by URL) |
 | `tools/build_pyz.sh` | Builds the single-file `dist/termlogo.pyz` (git-ignored) |
-| `examples/` | `flower`, `tree`, `koch`, `spiral`, `stars`, `stencil_demo`, `stencil_fill` |
+| `examples/` | `flower`, `tree`, `koch`, `spiral`, `stars`, `stencil_demo`, `stencil_fill`, `ab_logo` |
 | `tests/test_logo.py` | Unit tests |
 | `tests/test_terminal.py` | Resize, input and live pseudo-terminal regression tests |
 | `tests/test_build.py` | Builds the `.pyz` and runs it away from the source tree |

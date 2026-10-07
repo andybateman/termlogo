@@ -1,0 +1,31 @@
+; AB monogram: a bold A and B, drawn with a thick round pen.
+to jump :x :y
+  pu setxy :x :y pd
+end
+
+to half :r
+  ; a half circle of radius :r, turning right, ending 2r below where it began
+  repeat 18 [fd 3.14159 * :r / 18 rt 10]
+end
+
+to letter.a
+  setpc 14
+  jump -66 -40 seth 20
+  fd 86 rt 140 fd 86     ; the two legs
+  jump -52 -8 seth 90
+  fd 31                  ; the crossbar
+end
+
+to letter.b
+  setpc 1
+  jump 24 -40 seth 0
+  fd 80 rt 90 fd 20      ; stem and top
+  half 20
+  fd 20 rt 180 fd 20     ; middle bar
+  half 20
+  fd 20                  ; bottom
+end
+
+cs ht setpensize 7
+letter.a
+letter.b
