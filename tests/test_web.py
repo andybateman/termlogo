@@ -235,6 +235,23 @@ class WebSessionTests(unittest.TestCase):
         s.reset()
         self.assertIs(s.host, host)  # a reset keeps the page's helpers
 
+    def test_a_stop_as_the_program_ends_still_finishes_the_run(self):
+        events = []
+        interrupted = []
+
+        def post(kind, *args):
+            if kind == 'frame' and not interrupted:
+                interrupted.append(True)
+                raise KeyboardInterrupt  # Stop pressed while the last picture was going
+            events.append((kind, *args))
+
+        s = Session(post, width=200, height=120)
+        self.assertEqual(s.run('make "keep 1 fd 10', speed=0), '')
+        self.assertEqual([e[0] for e in events], ['frame', 'done'])
+        _, rgba, first, last, *_ = events[0]
+        self.assertEqual((first, last), (0, 119))  # sent whole after the interruption
+        self.assertEqual(s.run('print :keep', speed=0), '')  # the workspace is intact
+
     def test_cleartext_tells_the_page(self):
         s, post = session()
         s.run('print 1 cleartext', speed=0)

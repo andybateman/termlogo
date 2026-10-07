@@ -170,7 +170,12 @@ class Session:
             error = 'Stack overflow'
         except Exception as e:  # never let a program take the page down
             error = f'Internal error: {type(e).__name__}: {e}'
-        self._frame(force=True)
+        for _ in range(2):
+            try:
+                self._frame(force=True)
+                break
+            except KeyboardInterrupt:  # Stop arrived as the program ended: it is over anyway
+                self._full = True  # part of a picture may have gone; send it all next time
         self.post('done', error)
         return error
 
