@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Terminal Logo Turtle</title>
+<meta name="description" content="A Logo interpreter with turtle graphics, running in your browser.">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Terminal Logo Turtle</h1>
+  <p class="tagline">Logo with turtle graphics, running in your browser</p>
+  <nav><a href="https://github.com/andybateman/termlogo">Source and install</a></nav>
+</header>
+
+<main>
+  <section class="panel" aria-labelledby="program-title">
+    <h2 id="program-title">Program</h2>
+    <div class="toolbar">
+      <button id="run" type="button" disabled>Run <kbd>Ctrl+Enter</kbd></button>
+      <button id="stop" type="button" disabled>Stop</button>
+      <button id="clear" type="button" disabled>Clear canvas</button>
+      <button id="reset" type="button" disabled>Reset</button>
+    </div>
+    <div class="toolbar">
+      <label>Example
+        <select id="examples"><option value="">Choose&hellip;</option></select>
+      </label>
+      <label>Speed
+        <select id="speed">
+          <option value="0">Instant</option>
+          <option value="2">Slow</option>
+          <option value="5" selected>Normal</option>
+          <option value="8">Fast</option>
+        </select>
+      </label>
+      <label>Colours
+        <select id="colours">
+          <option value="ucblogo" selected>UCBLogo</option>
+          <option value="terrapin">Terrapin</option>
+        </select>
+      </label>
+    </div>
+    <label class="sr-only" for="code">Logo program</label>
+    <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" rows="16"></textarea>
+    <form id="repl" autocomplete="off">
+      <label for="line" class="prompt">?</label>
+      <input id="line" type="text" spellcheck="false" autocapitalize="off" disabled
+             placeholder="Type a command and press Enter, e.g. fd 50 rt 90">
+    </form>
+  </section>
+
+  <section class="panel" aria-labelledby="canvas-title">
+    <h2 id="canvas-title">Canvas</h2>
+    <div class="stage">
+      <canvas id="stage" width="800" height="600" role="img" aria-label="Turtle graphics canvas"></canvas>
+    </div>
+    <div class="toolbar">
+      <span id="status" role="status">Starting&hellip;</span>
+      <span class="spacer"></span>
+      <span>Save as</span>
+      <button class="export" data-kind="png" type="button" disabled>PNG</button>
+      <button class="export" data-kind="svg" type="button" disabled>SVG</button>
+      <button class="export" data-kind="stl" type="button" disabled title="A flat plate with your pen strokes cut through it, for 3D printing">STL stencil</button>
+    </div>
+    <h2 id="output-title">Output</h2>
+    <pre id="log" aria-labelledby="output-title" aria-live="polite"></pre>
+  </section>
+</main>
+
+<footer>
+  <p>The same Python engine as the terminal version, running in your browser through
+  <a href="https://pyodide.org/">Pyodide</a>. Nothing is sent to a server.
+  Commands that wait for typing (<code>READWORD</code>, <code>READCHAR</code>) see an empty keyboard here.
+  Type <code>HELP</code> for every command.</p>
+</footer>
+<script type="module" src="app.js"></script>
+</body>
+</html>

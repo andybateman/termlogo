@@ -134,6 +134,23 @@ Rendered with `./bin/termlogo examples/NAME.logo --speed 0 -o docs/images/NAME.p
 - **Tail calls:** a final call in a procedure (also inside a final `IF`/`IFELSE`, or `OUTPUT proc ...`) runs as a loop, so `to loop ... loop end` runs indefinitely in constant memory. Escape or Ctrl-C stops it in the terminal. Other recursion is capped at 25,000 levels and then reports "Stack overflow".
 - **Extensions:** `SETSCALE n` (same as `--scale`), `FITWINDOW n` (same as `--fit`), `SETSPEED`/`SPEED`, `STENCIL`, `SAVEPICT "file.svg|png|txt|stl`, `HELP`, `VERSION`.
 
+## Browser version
+The same Python engine runs in a web page through [Pyodide](https://pyodide.org/) (Python compiled to WebAssembly), in a Web Worker so a long drawing never freezes the page. It has an editor, a command line with history, an example menu, a speed control, a UCBLogo/Terrapin colour switch, and PNG, SVG and STL stencil downloads. Nothing is sent to a server.
+```bash
+python3 tools/build_web.py                 # builds dist/web, fetching Pyodide with npm
+python3 -m http.server -d dist/web         # then open http://localhost:8000
+```
+Open it through a web server, not by double-clicking `index.html` (the page loads a module worker). The build is about 14 MB, mostly Pyodide itself, which the browser caches after the first visit; `?pyodide=https://...` loads Pyodide from another address instead. `docs/pages-workflow.yml` is a ready-made GitHub Pages workflow (it has to be moved to `.github/workflows/` by someone whose token may push workflows).
+
+This is a first version. Differences from the terminal:
+- `READWORD`, `READLIST`, `READCHAR` and `KEYP` see an empty keyboard, because a page cannot wait for typing inside a running program.
+- Stop replaces the worker, so procedures and variables are lost (the program text stays). The terminal's Escape keeps them.
+- `LABEL` text is drawn on the page but is not in the PNG or SVG downloads, and `SAVEPICT` writes to a hidden in-memory folder.
+- Pictures are sent as PNGs, so very fast animation is limited to roughly 10 frames a second.
+- The canvas is 800x600 pixels with one pixel per step; `FITWINDOW 1000` fits a textbook window.
+
+`tools/web_smoke.mjs` is an optional end-to-end check (Node, Chromium and `playwright-core`) that starts Python in the page and exercises every example, exports, Stop and the colour modes.
+
 ## Not implemented yet
 - Text-screen windows beyond `CURSOR`/`SETCURSOR`, `DRIBBLE`, `SETPREFIX` and directory commands (`DIR`, `FILES`), and `EDIT`.
 - A Braille cell can only show one colour, so where strokes of different colours meet inside one cell (2x4 pixels) the cell takes the most common colour. `--render half` and `--render kitty` colour every pixel.
@@ -148,6 +165,7 @@ Rendered with `./bin/termlogo examples/NAME.logo --speed 0 -o docs/images/NAME.p
 | `termlogo/primitives_core.py` | Control, variables, procedures, I/O, workspace files |
 | `termlogo/primitives_data.py` | Words, lists, arithmetic, logic |
 | `termlogo/primitives_turtle.py` | Turtle and screen commands |
+| `termlogo/web.py` | Glue for the browser version: a session that runs Logo and posts pictures, text and files to the page |
 | `termlogo/primitives_ext.py` | Arrays, property lists, `GOTO`/`TAG`, `.MAYBEOUTPUT`, file streams, keys and the text cursor |
 | `termlogo/arrays.py` | The array type, kept separate so the tokeniser can build `{...}` literals |
 | `termlogo/turtle.py` | Turtle state, movement, WRAP/WINDOW/FENCE, colour parsing |
@@ -161,10 +179,14 @@ Rendered with `./bin/termlogo examples/NAME.logo --speed 0 -o docs/images/NAME.p
 | `termlogo/values.py`, `errors.py`, `registry.py` | Logo data helpers, error and control-flow exceptions, the primitive registry |
 | `bin/termlogo` | Launcher that runs from this folder without installing |
 | `Formula/termlogo.rb` | Homebrew formula (tap this repository by URL) |
+| `web/` | The browser page: `index.html`, `app.js` (editor, canvas, buttons), `worker.js` (Pyodide), `style.css` |
+| `tools/build_web.py` | Builds `dist/web`: the page, the package as `termlogo.zip`, examples and Pyodide |
+| `tools/web_smoke.mjs` | Optional end-to-end check of the browser version |
 | `tools/build_pyz.sh` | Builds the single-file `dist/termlogo.pyz` (git-ignored) |
 | `examples/` | `flower`, `tree`, `koch`, `spiral`, `stars`, `stencil_demo`, `stencil_fill`, `ab_logo` |
 | `tests/test_logo.py` | Unit tests |
 | `tests/test_terminal.py` | Resize, input and live pseudo-terminal regression tests |
+| `tests/test_web.py` | The browser glue (`termlogo/web.py`) without a browser |
 | `tests/test_build.py` | Builds the `.pyz` and runs it away from the source tree |
 | `tests/test_colours.py` | Terrapin lesson, palette, transparency and compatibility regressions |
 | `ruff.toml`, `requirements-dev.txt` | Project lint/format settings and pinned development tooling |

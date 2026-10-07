@@ -1,5 +1,10 @@
 # Changelog - Terminal Logo Turtle
 
+## [2026-10-07] - Browser version (first version)
+- Added a browser version of the engine: `web/` (page, editor, command line, canvas, example menu, speed and colour-mode controls, PNG/SVG/STL downloads) running the unchanged Python engine through Pyodide in a Web Worker. `termlogo/web.py` is the glue (a `Session` that runs Logo and posts text, pictures and files to the page), `Canvas.frame_png` gives it a picture with the turtle marker, and `tools/build_web.py` builds `dist/web` (page, package zip, examples, Pyodide 314.0.7 fetched with npm). `docs/pages-workflow.yml` is a GitHub Pages workflow to move into `.github/workflows/`
+- Known differences: keyboard input commands see an empty keyboard; Stop replaces the worker and so loses the workspace; `LABEL` text is not in PNG/SVG downloads; pictures travel as PNGs, which limits animation to roughly 10 frames a second
+- Validation (as at 2026-10-07): 314 unit tests passing (11 new for the glue, run without a browser); a Chromium run of `tools/web_smoke.mjs` passed 22 checks: Python starts in about 4 seconds locally, every example draws, labels, history, errors, PNG/SVG/STL downloads, animation, Stop and restart, and Terrapin mode all work, with no console errors. The CDN was not reachable from the build environment, so Pyodide is self-hosted. Not tried on a phone, in Safari or Firefox, or from GitHub Pages
+
 ## [2026-10-07] - Homebrew formula
 - Added `Formula/termlogo.rb` so the repository can be tapped by URL (`brew tap andybateman/termlogo https://github.com/andybateman/termlogo`, then `brew install termlogo`). It installs the v1.0.0 source with Homebrew's Python 3.13. The formula installs and runs on macOS (checked by hand with `brew install` and `brew test`). Newer Homebrew refuses third-party taps until they are trusted, so the instructions include `brew trust --formula andybateman/termlogo/termlogo`
 

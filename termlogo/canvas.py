@@ -520,13 +520,17 @@ class Canvas:
         return lines
 
     # ---- renderer: terminal graphics protocol ---------------------------------
+    def frame_png(self, turtle=None):
+        """The canvas as a PNG at one pixel per canvas pixel, with the turtle marker."""
+        return self.to_png(
+            overlay=self._overlay(turtle), pixel=1, overlay_colour=self._marker_colour(turtle)
+        )
+
     def kitty_image(self, turtle=None, standalone=False):
         """Escape sequence that draws the canvas as one real-pixel image (Kitty
         graphics protocol: Ghostty, Kitty, WezTerm). Text such as labels is left to
         the caller, since the image sits beneath the text layer (z=-1)."""
-        png = self.to_png(
-            overlay=self._overlay(turtle), pixel=1, overlay_colour=self._marker_colour(turtle)
-        )
+        png = self.frame_png(turtle)
         data = base64.b64encode(png).decode('ascii')
         chunks = [data[i : i + 4096] for i in range(0, len(data), 4096)] or ['']
         head = 'a=T,f=100,t=d,i=1,c=%d,r=%d,C=1,z=-1,q=2' % (self.cols, self.rows)

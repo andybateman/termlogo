@@ -30,6 +30,7 @@ Useful options: `--speed 0` draws instantly, `--render braille|half|kitty` picks
 
 ## Find out more
 - [README.md](../README.md): full user guide, key bindings, colour modes, stencils, what works and known issues
+- Try it in a browser: build it with `python3 tools/build_web.py` (see the README's Browser version section)
 - [examples/](../examples): sample programs to run and change
 - [CHANGELOG.md](../CHANGELOG.md): what changed in each version
 - [HANDOVER.md](../HANDOVER.md): open items and how to pick the project up
