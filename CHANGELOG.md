@@ -1,5 +1,8 @@
 # Changelog - Terminal Logo Turtle
 
+## [2026-10-07] - Public repository and MIT licence
+- Added the MIT `LICENSE` and a Licence section in the README, and changed the repository to public so the release can be downloaded and installed through a Homebrew tap. HANDOVER.md and the README no longer call it private. History above that mentions the private repository is left as it was written
+
 ## [2026-10-07] - Single-file build
 - Added `tools/build_pyz.sh`, which builds `dist/termlogo.pyz`: the whole package as one executable zip that runs wherever Python 3.10+ is installed. `dist/` is git-ignored. A test builds the archive and runs it from another directory. Standalone binaries (PyInstaller or Nuitka, one per platform) are not built yet
 

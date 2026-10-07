@@ -25,4 +25,5 @@ Useful options: `--speed 0` draws instantly, `--render braille|half|kitty` picks
 - [examples/](../examples): sample programs to run and change
 - [CHANGELOG.md](../CHANGELOG.md): what changed in each version
 - [HANDOVER.md](../HANDOVER.md): open items and how to pick the project up
+- [LICENSE](../LICENSE): MIT
 - Run the tests with `python3 -m unittest discover -s tests`

@@ -5,7 +5,7 @@
 **Status:** Active (v1.0.0; as at 2026-10-07)
 **Start Date:** 2026-10-06
 **Last Updated:** 2026-10-07
-**Repository:** https://github.com/andybateman/termlogo (private)
+**Repository:** https://github.com/andybateman/termlogo (public)
 -->
 
 ## Overview
@@ -159,7 +159,11 @@ Rendered with `./bin/termlogo examples/NAME.logo --speed 0 -o docs/images/NAME.p
 | `tests/test_build.py` | Builds the `.pyz` and runs it away from the source tree |
 | `tests/test_colours.py` | Terrapin lesson, palette, transparency and compatibility regressions |
 | `ruff.toml`, `requirements-dev.txt` | Project lint/format settings and pinned development tooling |
+| `LICENSE` | MIT licence |
 | `HANDOVER.md` | Open items with owners, decisions made and how to pick the project up |
+
+## Licence
+MIT; see [LICENSE](LICENSE). Copyright (c) 2026 Andy Bateman.
 
 ## Development checks
 The interpreter needs no third-party packages. Ruff is a development-only dependency:

@@ -6,7 +6,7 @@
 A Logo interpreter with turtle graphics that runs entirely in the terminal, using only the Python standard library. It follows UCBLogo by default, has a Terrapin colour mode for the colour tutorial, and can export a drawing as a 3D-printable stencil. `README.md` is the user guide; this file is the list of what is still to do and how to pick it up.
 
 ## Current state
-- Version 1.0.0, on `main`, pushed to the private GitHub repository `andybateman/termlogo`.
+- Version 1.0.0, on `main`, pushed to the public GitHub repository `andybateman/termlogo`.
 - Ruff lint and format are clean and the unit and pseudo-terminal tests pass (as at 2026-10-07; run the commands under "How to pick it up" for the live result).
 - Added on 2026-10-07 (later): nested `FILLED` repaint, arrays, property lists, file streams, `READCHAR`/`KEYP`, `CURSOR`/`SETCURSOR`, `GOTO`/`TAG`, `.MAYBEOUTPUT`, round pens, XOR `PENREVERSE`, `--fit`.
 - Added on 2026-10-07: keyboard editing of multi-line commands recalled from history, `.stl` added to `STENCIL` names, `FILL` and `FILLED` areas cut out of the stencil, and a repaired `FILLED`.
@@ -26,7 +26,7 @@ A Logo interpreter with turtle graphics that runs entirely in the terminal, usin
 | `SETCURSOR` works inside the REPL's five-row text area and lasts one command | The text area is a scrolling log, not a full text screen. Outside the REPL it does nothing |
 | `--fit N` scales the drawing, not pen sizes | Pen size is in pixels. Scaling it would change stencil widths, which are in millimetres |
 | A Braille cell keeps showing its most common colour | A Braille character has one foreground colour; `half` and `kitty` give per-pixel colour |
-| Repository name `termlogo`, kept private | Both chosen by Andy (2026-10-07) |
+| Repository name `termlogo`, public under the MIT licence | Name chosen by Andy (2026-10-07); made public the same day so it can be installed with Homebrew |
 | One `README.md` for GitHub and the Quests project tools, with the `Keywords`, `Status` and date lines inside an HTML comment | GitHub hides comments; `projects.py`, the session hook and the skills still find the lines. Next steps live in this file, not the README |
 
 ## Open items
