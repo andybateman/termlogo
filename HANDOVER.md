@@ -30,7 +30,7 @@ A Logo interpreter with turtle graphics that runs entirely in the terminal, usin
 | One `README.md` for GitHub and the Quests project tools, with the `Keywords`, `Status` and date lines inside an HTML comment | GitHub hides comments; `projects.py`, the session hook and the skills still find the lines. Next steps live in this file, not the README |
 
 ## Open items
-Low-effort checks first. "Next session" means work for Claude with Andy.
+Low-effort checks first. "Next session" means follow-up work in a later session.
 
 | # | Item | Owner | Effort |
 |---|---|---|---|

@@ -5,3 +5,5 @@ __pycache__/
 .venv/
 *.stl
 dist/
+CLAUDE.md
+.claude/
