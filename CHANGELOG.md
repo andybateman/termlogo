@@ -1,5 +1,8 @@
 # Changelog - Terminal Logo Turtle
 
+## [2026-10-07] - v1.2.0
+- Released the redesigned browser page (the canvas fills the window and follows its size, with a divider, Expand and full screen for more room, a searchable Help panel, Open and Save), the fix for deep recursion crashing Python 3.10 and 3.11, the review fixes (browser recursion limit, file streams, `PPS`, faster resizing), `SETSCALE` ending a `FITWINDOW`, examples that fit themselves to the canvas, and the browser screenshots in the README. The CLI, startup banner, `VERSION` reporter and README now use version 1.2.0. Release notes: `docs/release-notes-v1.2.0.md`
+
 ## [2026-10-07] - Screenshots of the browser version in the docs
 - The README's Browser version section now shows the page in a laptop window and on a phone (`docs/images/browser.png` and `docs/images/browser-phone.png`), and the GitHub front page shows the laptop view beside a terminal drawing
 - `tools/web_screenshots.mjs` retakes both after the page changes, with the same setup as `tools/web_smoke.mjs`: the default program at Instant speed, in light mode and a fresh browser profile

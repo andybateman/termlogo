@@ -1,12 +1,12 @@
 # Handover - Terminal Logo Turtle
 
-**As at:** 2026-10-07 (v1.1.0, plus unreleased changes on `main`)
+**As at:** 2026-10-07 (v1.2.0)
 
 ## Purpose
 A Logo interpreter with turtle graphics that runs entirely in the terminal, using only the Python standard library. It follows UCBLogo by default, has a Terrapin colour mode for the colour tutorial, and can export a drawing as a 3D-printable stencil. `README.md` is the user guide; this file is the list of what is still to do and how to pick it up.
 
 ## Current state
-- Version 1.1.0 is the latest release, from the public GitHub repository `andybateman/termlogo`. `main` has moved on since, unreleased: the Python 3.10 and 3.11 recursion crash fix, review fixes (browser recursion limit, file streams, `PPS`), and the redesigned browser page, whose canvas fills the window. The live page at www.andybateman.com/termlogo/ is published from `main` and shows the commit it was built from.
+- Version 1.2.0 (tag `v1.2.0`), on `main` in the public GitHub repository `andybateman/termlogo`. Since 1.1.0: the Python 3.10 and 3.11 recursion crash fix, review fixes (browser recursion limit, file streams, `PPS`), and the redesigned browser page, whose canvas fills the window. The live page at www.andybateman.com/termlogo/ is published from `main` and shows the version and commit it was built from.
 - Ruff lint and format are clean, and the 343 unit and pseudo-terminal tests pass on Python 3.10, 3.11, 3.12 and 3.13. The browser smoke test passes all 72 checks in headless Chromium (as at 2026-10-07; run the commands under "How to pick it up" for the live result).
 - Added on 2026-10-07 (later): nested `FILLED` repaint, arrays, property lists, file streams, `READCHAR`/`KEYP`, `CURSOR`/`SETCURSOR`, `GOTO`/`TAG`, `.MAYBEOUTPUT`, round pens, XOR `PENREVERSE`, `--fit`.
 - Added on 2026-10-07: keyboard editing of multi-line commands recalled from history, `.stl` added to `STENCIL` names, `FILL` and `FILLED` areas cut out of the stencil, and a repaired `FILLED`.
@@ -38,6 +38,7 @@ Low-effort checks first. "Next session" means follow-up work in a later session.
 
 | # | Item | Owner | Effort |
 |---|---|---|---|
+| 17 | Create the v1.2.0 release page with the `.pyz` (the tag is already pushed): `sh tools/build_pyz.sh`, then `gh release create v1.2.0 dist/termlogo.pyz --title "termlogo v1.2.0" --notes-file docs/release-notes-v1.2.0.md` | Andy | Small |
 | 1 | Try the command-pane keys by hand in Ghostty: Up/Down inside a recalled block, Option+Enter, Home/End twice. Confirm whether Shift+Enter adds a line (it relies on Ghostty sending `CSI 27;2;13~`) | Andy | Small |
 | 2 | Recheck Kitty rendering in a restarted Ghostty session (carried over from 2026-10-06) | Andy | Small |
 | 3 | Open `examples/stencil_fill.logo` output in a slicer, then test-print one stencil | Andy | Small, then a print |
@@ -48,7 +49,7 @@ Low-effort checks first. "Next session" means follow-up work in a later session.
 | 9 | Side-by-side conformance list against UCBLogo | Next session | Medium |
 | 10 | Install route for the MacBook setup: the `termlogo` link in `~/.oh-my-zsh/oh-my-custom/bin/` is not in the setup script | Andy | Small |
 | 11 | Wider Ruff rules (`UP`, `SIM`, `RUF`): roughly 160 style points, none of them bugs (as at 2026-10-07) | Next session | Small |
-| 15 | After each release: run `tools/update_formula.sh VERSION` (needs the tag to exist), commit, then check `brew install` on a Mac. The formula was checked on a Mac for v1.0.0; 1.1.0 not yet | Andy | Small, each release |
+| 15 | After each release: run `tools/update_formula.sh VERSION` (needs the tag to exist), commit, then check `brew install` on a Mac. The formula was checked on a Mac for v1.0.0; 1.1.0 and 1.2.0 not yet | Andy | Small, each release |
 | 16 | Browser version (live at www.andybateman.com/termlogo/, published with `tools/publish_site.sh`, which builds into the `andybateman.github.io` checkout, commits and pushes; Pyodide loads from the jsDelivr CDN). Done: animation by changed rows, `LABEL` in PNG/SVG, share links, typing into programs, interruptible Stop (service worker for shared memory, with a fallback), and the 2026-10-07 redesign (the canvas fills the window; divider, Expand and full screen; Help; Open and Save). Next: suggestions 2 and 5 to 10 below | Next session | Small |
 | 14 | Standalone per-platform binaries (PyInstaller or Nuitka via a GitHub Actions matrix on release tags). Needs a token with workflow scope, and `readline` history checked on macOS and Linux. macOS needs signing and notarising to avoid the Gatekeeper warning | Next session | Medium |
 | 13 | Try the new REPL features by hand in Ghostty: `READCHAR` and `KEYP` while a program runs, `SETCURSOR`, `--fit 1000` after resizing the window, and the round Braille pen. | Andy | Small |
@@ -59,7 +60,7 @@ Can wait: 7, 8, 9 and 11.
 From the review on 2026-10-07, in priority order. Items already in the table above are not repeated.
 
 **Do next (small)**
-1. **Release 1.2.0.** `main` carries a crash fix that matters to anyone running `termlogo.pyz` on Python 3.10 or 3.11 (deep recursion could kill the interpreter), plus the review fixes and the new page. Then run `tools/update_formula.sh 1.2.0` (open item 15).
+1. **Finish the 1.2.0 release.** Create its release page with the `.pyz` (open item 17), then `brew upgrade termlogo` on the Mac (open item 15).
 2. **Open the live page in Safari, Firefox and on a phone.** The page has only been checked in headless Chromium. Worth trying: dragging the divider with a trackpad, full screen (iPhone Safari cannot show one element full screen, so the button hides itself there), the one-time reload for the service worker, typing a line for `READWORD`, and runaway recursion (`to r :n output 1 + r :n + 1 end print r 1` should say `Stack overflow`; the 2,000-frame limit was measured in Chromium, and other browsers have different stack sizes).
 3. **Add continuous integration.** A GitHub Actions workflow that runs ruff and the unit tests on Python 3.10 to 3.13 for every push. Python 3.10 was first tested on 2026-10-07 and turned up a crash that this would have caught. Pushing a workflow needs a token with the `workflow` scope (as for `docs/pages-workflow.yml`).
 4. **Tidy up.** Delete the leftover remote branch from an earlier session (`git branch -r` lists it; `git push origin --delete NAME`). Remove `docs/release-pyz-instructions.txt`, a one-off that added notes to the v1.0.0 release and has been run. Settle outstanding question 1 with `gh auth setup-git`.
