@@ -1,5 +1,9 @@
 # Changelog - Terminal Logo Turtle
 
+## [2026-10-07] - Browser version hosted on andybateman.com
+- The browser version is published as static files at `/termlogo/` in the `andybateman/andybateman.github.io` repository (live at https://www.andybateman.com/termlogo/). `python3 tools/build_web.py --out ../andybateman.github.io/termlogo` updates it; `build_web.py` now refuses to replace a folder it did not make (one without its `config.json`) unless it is empty, so a mistyped `--out` cannot delete anything. The page has an SVG favicon (`web/favicon.svg`) in place of the empty one, which the site's html-proofer Favicon check wanted
+- Checked by building the site with its own Jekyll configuration in production mode (builds cleanly, html-proofer passes all five README checks) and by running the 22 browser checks against `/termlogo/` served from the built site, with Pyodide from a local server standing in for the CDN. The real CDN download was checked separately on macOS (the entry below); the deployed copy at andybateman.com has not been opened yet
+
 ## [2026-10-07] - AB monogram example redrawn as an animation
 - Rewrote `examples/ab_logo.logo` in 21 lines without comments: white on black, each letter traced with `FD` and `LT` by a visible turtle and then filled with `FILLED`, after which the turtle turns and moves to the bottom-right corner. The outline is the same shape as before; `:k` is folded into the measurements. `docs/images/ab_logo.png` re-rendered to match
 - Validation (as at 2026-10-07): 314 unit tests passing. `tools/web_smoke.mjs` passed all 22 checks in headless Chrome on macOS against a fresh `dist/web`, with Pyodide loaded from the real jsDelivr CDN, which the earlier browser entries could not reach. The smoke test runs examples at speed 0, so the animation has not been watched in a browser or a real terminal

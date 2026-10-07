@@ -140,7 +140,12 @@ The same Python engine runs in a web page through [Pyodide](https://pyodide.org/
 python3 tools/build_web.py                 # builds dist/web (about 0.1 MB)
 python3 -m http.server -d dist/web         # then open http://localhost:8000
 ```
-Open it through a web server, not by double-clicking `index.html` (the page loads a module worker). Pyodide itself (about 12 MB) is loaded from the jsDelivr CDN on the first visit and cached by the browser after that. For a site that works offline or where the CDN is blocked, build with `--bundle-pyodide` (needs npm) to put a copy beside the page, or open the page with `?pyodide=https://...` to use another address. `docs/pages-workflow.yml` is a ready-made GitHub Pages workflow (it has to be moved to `.github/workflows/` by someone whose token may push workflows).
+Open it through a web server, not by double-clicking `index.html` (the page loads a module worker). Pyodide itself (about 12 MB) is loaded from the jsDelivr CDN on the first visit and cached by the browser after that. For a site that works offline or where the CDN is blocked, build with `--bundle-pyodide` (needs npm) to put a copy beside the page, or open the page with `?pyodide=https://...` to use another address. `docs/pages-workflow.yml` is a ready-made workflow for publishing this repository's own GitHub Pages instead (it has to be moved to `.github/workflows/` by someone whose token may push workflows).
+
+**Live copy:** it is hosted at <https://www.andybateman.com/termlogo/>, as static files in the `andybateman/andybateman.github.io` repository. To update it, build into that repository and commit there (the build only ever replaces a folder it made itself, or an empty one):
+```bash
+python3 tools/build_web.py --out ../andybateman.github.io/termlogo
+```
 
 This is a first version. Differences from the terminal:
 - `READWORD`, `READLIST`, `READCHAR` and `KEYP` see an empty keyboard, because a page cannot wait for typing inside a running program.

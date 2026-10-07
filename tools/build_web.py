@@ -76,6 +76,10 @@ def main():
 
     out = args.out
     if out.exists():
+        # Only ever replace a folder this script made (it leaves a config.json) or an empty one,
+        # so a mistyped --out cannot wipe something else.
+        if any(out.iterdir()) and not (out / 'config.json').is_file():
+            sys.exit(f'{out} exists and was not made by this script; choose another --out')
         shutil.rmtree(out)
     out.mkdir(parents=True)
     for page in sorted((ROOT / 'web').iterdir()):
