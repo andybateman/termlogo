@@ -431,7 +431,9 @@ def setscale(it, s):
     v = _num(s, 'setscale')
     if v <= 0:
         raise LogoError(f"setscale doesn't like {V.fmt(s)} as input")
-    _t(it).canvas.set_scale(float(v))
+    canvas = _t(it).canvas
+    canvas.fit = None  # a fixed scale replaces any FITWINDOW, which would return on a resize
+    canvas.set_scale(float(v))
 
 
 @prim('fitwindow', 1)

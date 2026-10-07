@@ -1593,6 +1593,13 @@ class FitWindowTests(unittest.TestCase):
         c.copy_to(bigger)
         self.assertAlmostEqual(bigger.scale, min(bigger.width, bigger.height) / 1000)
 
+    def test_setscale_replaces_fitwindow_even_after_a_resize(self):
+        _, _, _, c = run('fitwindow 100 setscale 1', size=(80, 24))
+        self.assertIsNone(c.fit)
+        bigger = Canvas(120, 40)
+        c.copy_to(bigger)
+        self.assertEqual(bigger.scale, 1.0)
+
     def test_fitwindow_needs_a_positive_size(self):
         for bad in ('0', '-5', '"x'):
             with self.subTest(bad=bad), self.assertRaises(LogoError):
