@@ -10,7 +10,7 @@ A Logo interpreter with turtle graphics that runs entirely in the terminal, usin
 - Ruff lint and format are clean, and the 343 unit and pseudo-terminal tests pass on Python 3.10, 3.11, 3.12 and 3.13. The browser smoke test passes all 72 checks in headless Chromium (as at 2026-10-07; run the commands under "How to pick it up" for the live result).
 - Added on 2026-10-07 (later): nested `FILLED` repaint, arrays, property lists, file streams, `READCHAR`/`KEYP`, `CURSOR`/`SETCURSOR`, `GOTO`/`TAG`, `.MAYBEOUTPUT`, round pens, XOR `PENREVERSE`, `--fit`.
 - Added on 2026-10-07: keyboard editing of multi-line commands recalled from history, `.stl` added to `STENCIL` names, `FILL` and `FILLED` areas cut out of the stencil, and a repaired `FILLED`.
-- Not yet checked by hand: the later additions (item 13), the new command-pane keys in a real Ghostty window, the fill cut-outs in a slicer or on the printer, and the redesigned page outside Chromium (suggestion 1). All of these are covered only by automated tests so far.
+- Not yet checked by hand: the later additions (item 13), the new command-pane keys in a real Ghostty window, and the fill cut-outs in a slicer or on the printer. All of these are covered only by automated tests so far. The live page was checked by hand in Safari, Firefox and on a phone (2026-10-07).
 
 ## Decisions made
 | Decision | Why |
@@ -49,7 +49,7 @@ Low-effort checks first. "Next session" means follow-up work in a later session.
 | 10 | Install route for the MacBook setup: the `termlogo` link in `~/.oh-my-zsh/oh-my-custom/bin/` is not in the setup script | Andy | Small |
 | 11 | Wider Ruff rules (`UP`, `SIM`, `RUF`): roughly 160 style points, none of them bugs (as at 2026-10-07) | Next session | Small |
 | 15 | After each release: run `tools/update_formula.sh VERSION` (needs the tag to exist), commit, then check `brew install` on a Mac. The formula was checked on a Mac for v1.0.0, and for v1.2.0 with `brew upgrade` (2026-10-07) | Andy | Small, each release |
-| 16 | Browser version (live at www.andybateman.com/termlogo/, published with `tools/publish_site.sh`, which builds into the `andybateman.github.io` checkout, commits and pushes; Pyodide loads from the jsDelivr CDN). Done: animation by changed rows, `LABEL` in PNG/SVG, share links, typing into programs, interruptible Stop (service worker for shared memory, with a fallback), and the 2026-10-07 redesign (the canvas fills the window; divider, Expand and full screen; Help; Open and Save). Next: suggestions 1 and 4 to 9 below | Next session | Small |
+| 16 | Browser version (live at www.andybateman.com/termlogo/, published with `tools/publish_site.sh`, which builds into the `andybateman.github.io` checkout, commits and pushes; Pyodide loads from the jsDelivr CDN). Done: animation by changed rows, `LABEL` in PNG/SVG, share links, typing into programs, interruptible Stop (service worker for shared memory, with a fallback), and the 2026-10-07 redesign (the canvas fills the window; divider, Expand and full screen; Help; Open and Save). Next: suggestions 2 to 7 below | Next session | Small |
 | 14 | Standalone per-platform binaries (PyInstaller or Nuitka via a GitHub Actions matrix on release tags). Needs a token with workflow scope, and `readline` history checked on macOS and Linux. macOS needs signing and notarising to avoid the Gatekeeper warning | Next session | Medium |
 | 13 | Try the new REPL features by hand in Ghostty: `READCHAR` and `KEYP` while a program runs, `SETCURSOR`, `--fit 1000` after resizing the window, and the round Braille pen. | Andy | Small |
 
@@ -59,24 +59,21 @@ Can wait: 7, 8, 9 and 11.
 From the review on 2026-10-07, in priority order. Items already in the table above are not repeated.
 
 **Do next (small)**
-1. **Open the live page in Safari, Firefox and on a phone.** The page has only been checked in headless Chromium. Worth trying: dragging the divider with a trackpad, full screen (iPhone Safari cannot show one element full screen, so the button hides itself there), the one-time reload for the service worker, typing a line for `READWORD`, and runaway recursion (`to r :n output 1 + r :n + 1 end print r 1` should say `Stack overflow`; the 2,000-frame limit was measured in Chromium, and other browsers have different stack sizes).
-2. **Add continuous integration.** A GitHub Actions workflow that runs ruff and the unit tests on Python 3.10 to 3.13 for every push. Python 3.10 was first tested on 2026-10-07 and turned up a crash that this would have caught. Pushing a workflow needs a token with the `workflow` scope (as for `docs/pages-workflow.yml`).
-3. **Settle the git credentials.** Run `gh auth setup-git` (outstanding question 1), so plain `git push` works on the Mac.
+1. **Add continuous integration.** A GitHub Actions workflow that runs ruff and the unit tests on Python 3.10 to 3.13 for every push. Python 3.10 was first tested on 2026-10-07 and turned up a crash that this would have caught. Pushing a workflow needs a token with the `workflow` scope (as for `docs/pages-workflow.yml`).
 
 **Worth doing (medium)**
-4. **Sharper pictures on high-DPI screens.** The page gives each canvas pixel one CSS pixel, so on a Retina screen lines look slightly soft. Either draw at `devicePixelRatio` (up to four times the pixels for Python to fill, so check the speed and `MAX_PIXELS`), or have the engine send line segments for the page to draw as vectors (`FILL` would still need pixels).
-5. **A better editor.** Line numbers, bracket matching and Logo colouring, for example CodeMirror 6 from the CDN (about 150 KB). Error messages could then point at the line.
-6. **Speed and resizing during a run.** Both take effect only between runs; a resize during an animation stretches the old picture until it ends. Both could reach a running program through the shared memory that already carries keys and Stop.
-7. **Click or drag to move the turtle** on the canvas, as the terminal REPL does.
-8. **`SAVEPICT` as a download** in the browser, instead of writing to the hidden in-memory folder.
+2. **Sharper pictures on high-DPI screens.** The page gives each canvas pixel one CSS pixel, so on a Retina screen lines look slightly soft. Either draw at `devicePixelRatio` (up to four times the pixels for Python to fill, so check the speed and `MAX_PIXELS`), or have the engine send line segments for the page to draw as vectors (`FILL` would still need pixels).
+3. **A better editor.** Line numbers, bracket matching and Logo colouring, for example CodeMirror 6 from the CDN (about 150 KB). Error messages could then point at the line.
+4. **Speed and resizing during a run.** Both take effect only between runs; a resize during an animation stretches the old picture until it ends. Both could reach a running program through the shared memory that already carries keys and Stop.
+5. **Click or drag to move the turtle** on the canvas, as the terminal REPL does.
+6. **`SAVEPICT` as a download** in the browser, instead of writing to the hidden in-memory folder.
 
 **Later (large)**
-9. **Offline use.** Let the service worker cache the page and Pyodide, so the page works without a connection once visited (a progressive web app).
-10. **Deeper recursion everywhere.** To avoid a crash, non-tail recursion stops after about 140 to 400 levels in the browser and 350 to 1,000 on Python 3.10 (each level takes 5 to 14 Python frames), against 25,000 elsewhere. Requiring Python 3.11 in a future major version would lift the 3.10 limit; an evaluator that keeps its own stack instead of Python's would remove both limits.
+7. **Offline use.** Let the service worker cache the page and Pyodide, so the page works without a connection once visited (a progressive web app).
+8. **Deeper recursion everywhere.** To avoid a crash, non-tail recursion stops after about 140 to 400 levels in the browser and 350 to 1,000 on Python 3.10 (each level takes 5 to 14 Python frames), against 25,000 elsewhere. Requiring Python 3.11 in a future major version would lift the 3.10 limit; an evaluator that keeps its own stack instead of Python's would remove both limits.
 
 ## Outstanding questions
-1. **Git credentials.** Plain `git push` fails because git uses the macOS keychain login rather than the active `gh` account. `gh auth setup-git` fixes it for good but edits the global git config.
-2. **Older CHANGELOG entries** (the tail-call and first-build entries) describe Logo's variable scoping with a term from the banned-word list. Reword the history or leave it?
+1. **Older CHANGELOG entries** (the tail-call and first-build entries) describe Logo's variable scoping with a term from the banned-word list. Reword the history or leave it?
 
 ## Key files
 | File | Why it matters |
@@ -102,5 +99,5 @@ cd ~/Documents/Quests/Projects/20261006_Terminal_Logo_Turtle
 - Commit each change separately.
 - Releases: a cloud session cannot push tags, so create each release on the Mac, which makes the tag: `sh tools/build_pyz.sh`, then `gh release create vX.Y.Z dist/termlogo.pyz --target COMMIT --title "termlogo vX.Y.Z" --notes-file docs/release-notes-vX.Y.Z.md`. Then `tools/update_formula.sh X.Y.Z`, commit and push, and check with `brew update && brew upgrade termlogo`.
 - The site checkout on the Mac is `~/Documents/Quests/Projects/20200609_AndyBateman/Projects/20250301_Current_Site_for_AndyBateman.com/andybateman.github.io`, not beside this folder, so give its path to `tools/publish_site.sh`.
-- Before pushing, check `gh auth status` shows the personal account, then push with `git -c credential.helper= -c credential.helper='!gh auth git-credential' push` until question 1 is settled.
+- Plain `git push` works: `gh auth setup-git` was run on the Mac (2026-10-07), so git uses the `gh` login.
 - After a change: update `README.md` and `CHANGELOG.md` (`/wrapup`), and this file if an open item is finished or added.
