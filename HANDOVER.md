@@ -6,7 +6,7 @@
 A Logo interpreter with turtle graphics that runs entirely in the terminal, using only the Python standard library. It follows UCBLogo by default, has a Terrapin colour mode for the colour tutorial, and can export a drawing as a 3D-printable stencil. `README.md` is the user guide; this file is the list of what is still to do and how to pick it up.
 
 ## Current state
-- Version 1.2.0, on `main` in the public GitHub repository `andybateman/termlogo` (its release page and tag are open item 17). Since 1.1.0: the Python 3.10 and 3.11 recursion crash fix, review fixes (browser recursion limit, file streams, `PPS`), and the redesigned browser page, whose canvas fills the window. The live page at www.andybateman.com/termlogo/ is published from `main` and shows the version and commit it was built from.
+- Version 1.2.0, released on 2026-10-07 from the public GitHub repository `andybateman/termlogo`, with `termlogo.pyz` on the release page; the Homebrew formula installs it. Since 1.1.0: the Python 3.10 and 3.11 recursion crash fix, review fixes (browser recursion limit, file streams, `PPS`), and the redesigned browser page, whose canvas fills the window. The live page at www.andybateman.com/termlogo/ is published from `main` and shows the version and commit it was built from.
 - Ruff lint and format are clean, and the 343 unit and pseudo-terminal tests pass on Python 3.10, 3.11, 3.12 and 3.13. The browser smoke test passes all 72 checks in headless Chromium (as at 2026-10-07; run the commands under "How to pick it up" for the live result).
 - Added on 2026-10-07 (later): nested `FILLED` repaint, arrays, property lists, file streams, `READCHAR`/`KEYP`, `CURSOR`/`SETCURSOR`, `GOTO`/`TAG`, `.MAYBEOUTPUT`, round pens, XOR `PENREVERSE`, `--fit`.
 - Added on 2026-10-07: keyboard editing of multi-line commands recalled from history, `.stl` added to `STENCIL` names, `FILL` and `FILLED` areas cut out of the stencil, and a repaired `FILLED`.
@@ -38,7 +38,6 @@ Low-effort checks first. "Next session" means follow-up work in a later session.
 
 | # | Item | Owner | Effort |
 |---|---|---|---|
-| 17 | Create the v1.2.0 release page with the `.pyz`, which also makes the tag (a cloud session cannot push tags): `sh tools/build_pyz.sh`, then `gh release create v1.2.0 dist/termlogo.pyz --target 3d41ebf33e42f9a8ec37348b9246f77e712ef08d --title "termlogo v1.2.0" --notes-file docs/release-notes-v1.2.0.md`. Then point the formula at it: `tools/update_formula.sh 1.2.0`, commit and push | Andy | Small |
 | 1 | Try the command-pane keys by hand in Ghostty: Up/Down inside a recalled block, Option+Enter, Home/End twice. Confirm whether Shift+Enter adds a line (it relies on Ghostty sending `CSI 27;2;13~`) | Andy | Small |
 | 2 | Recheck Kitty rendering in a restarted Ghostty session (carried over from 2026-10-06) | Andy | Small |
 | 3 | Open `examples/stencil_fill.logo` output in a slicer, then test-print one stencil | Andy | Small, then a print |
@@ -60,7 +59,7 @@ Can wait: 7, 8, 9 and 11.
 From the review on 2026-10-07, in priority order. Items already in the table above are not repeated.
 
 **Do next (small)**
-1. **Finish the 1.2.0 release.** Create its release page with the `.pyz` (open item 17), then `brew upgrade termlogo` on the Mac (open item 15).
+1. **Check 1.2.0 on the Mac.** `brew update && brew upgrade termlogo && brew test termlogo` (open item 15). For later releases, a cloud session cannot push tags, so create the release with `gh release create vX.Y.Z dist/termlogo.pyz --target COMMIT --title "termlogo vX.Y.Z" --notes-file docs/release-notes-vX.Y.Z.md`, which makes the tag; then run `tools/update_formula.sh X.Y.Z`.
 2. **Open the live page in Safari, Firefox and on a phone.** The page has only been checked in headless Chromium. Worth trying: dragging the divider with a trackpad, full screen (iPhone Safari cannot show one element full screen, so the button hides itself there), the one-time reload for the service worker, typing a line for `READWORD`, and runaway recursion (`to r :n output 1 + r :n + 1 end print r 1` should say `Stack overflow`; the 2,000-frame limit was measured in Chromium, and other browsers have different stack sizes).
 3. **Add continuous integration.** A GitHub Actions workflow that runs ruff and the unit tests on Python 3.10 to 3.13 for every push. Python 3.10 was first tested on 2026-10-07 and turned up a crash that this would have caught. Pushing a workflow needs a token with the `workflow` scope (as for `docs/pages-workflow.yml`).
 4. **Tidy up.** Remove `docs/release-pyz-instructions.txt`, a one-off that added notes to the v1.0.0 release and has been run. Settle outstanding question 1 with `gh auth setup-git`.

@@ -1,8 +1,8 @@
 class Termlogo < Formula
   desc "Logo interpreter with turtle graphics for the terminal"
   homepage "https://github.com/andybateman/termlogo"
-  url "https://github.com/andybateman/termlogo/archive/refs/tags/v1.1.0.tar.gz"
-  sha256 "2c2388a97774a76f4ef4fa4f1de462713dc8a0dcc33e788ba81c1b13a4b17148"
+  url "https://github.com/andybateman/termlogo/archive/refs/tags/v1.2.0.tar.gz"
+  sha256 "59e872cbb72af384107910621a150ac03f0a0aa7ea175ad2881a75cfedbeeb44"
   license "MIT"
 
   depends_on "python@3.13"
@@ -16,6 +16,6 @@ class Termlogo < Formula
   end
 
   test do
-    assert_match "termlogo 1.1.0", shell_output("#{bin}/termlogo --version")
+    assert_match "termlogo 1.2.0", shell_output("#{bin}/termlogo --version")
   end
 end
