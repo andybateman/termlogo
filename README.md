@@ -149,12 +149,17 @@ Open it through a web server, not by double-clicking `index.html` (the page load
 python3 tools/build_web.py --out ../andybateman.github.io/termlogo
 ```
 
-This is a first version. Differences from the terminal:
-- `READWORD`, `READLIST`, `READCHAR` and `KEYP` see an empty keyboard, because a page cannot wait for typing inside a running program.
-- Stop replaces the worker, so procedures and variables are lost (the program text stays). The terminal's Escape keeps them.
-- `LABEL` text is drawn on the page but is not in the PNG or SVG downloads, and `SAVEPICT` writes to a hidden in-memory folder.
-- Pictures are sent as PNGs, so very fast animation is limited to roughly 10 frames a second.
-- The canvas is 800x600 pixels with one pixel per step; `FITWINDOW 1000` fits a textbook window.
+**What it does:**
+- Pictures are sent as the rows that changed, and the turtle and `LABEL` text are drawn by the page, so animation keeps up with the set speed.
+- PNG downloads include `LABEL` text (not the turtle), SVG downloads include it as text, and STL stencils work as in the terminal.
+- **Share link** copies an address that holds your program after the `#` (compressed), so it never reaches a server. Opening such a link loads the program into the editor but does not run it.
+- `READWORD`, `READLIST`, `READCHAR` and `KEYP` work: lines come from the box under the editor and keys from the canvas (click it first). **Stop** and **Esc** interrupt the program and keep your procedures and variables.
+
+Typing into a running program and a gentle Stop need the page to be "cross-origin isolated", which GitHub Pages cannot arrange with headers. `web/coi-sw.js` is a small service worker that adds them, which costs one automatic reload on the first visit. If the browser will not run it (some private windows), or Python will not start with it, the page drops back to the plain mode and remembers that:
+- input commands see the end of input, and Stop replaces Python, so procedures and variables are lost (the program text stays).
+- `?nocoi` in the address forces this mode.
+
+Still different from the terminal: `SAVEPICT` writes to a hidden in-memory folder (use the download buttons), and the canvas is 800x600 pixels with one pixel per step (`FITWINDOW 1000` fits a textbook window).
 
 `tools/web_smoke.mjs` is an optional end-to-end check (Node, Chromium and `playwright-core`) that starts Python in the page and exercises every example, exports, Stop and the colour modes.
 
@@ -186,7 +191,7 @@ This is a first version. Differences from the terminal:
 | `termlogo/values.py`, `errors.py`, `registry.py` | Logo data helpers, error and control-flow exceptions, the primitive registry |
 | `bin/termlogo` | Launcher that runs from this folder without installing |
 | `Formula/termlogo.rb` | Homebrew formula (tap this repository by URL) |
-| `web/` | The browser page: `index.html`, `app.js` (editor, canvas, buttons), `worker.js` (Pyodide), `style.css` |
+| `web/` | The browser page: `index.html`, `app.js` (editor, canvas, buttons, sharing), `worker.js` (Pyodide and input), `coi-sw.js` (service worker for shared memory), `style.css`, `favicon.svg` |
 | `tools/build_web.py` | Builds `dist/web`: the page, the package as `termlogo.zip`, examples, and optionally a copy of Pyodide |
 | `tools/web_smoke.mjs` | Optional end-to-end check of the browser version |
 | `tools/build_pyz.sh` | Builds the single-file `dist/termlogo.pyz` (git-ignored) |

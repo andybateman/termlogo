@@ -66,6 +66,7 @@ textarea {
 .prompt { font: 1rem ui-monospace, monospace; color: var(--muted); }
 .stage { background: #000; border-radius: 6px; overflow: hidden; line-height: 0; }
 #stage { width: 100%; height: auto; display: block; image-rendering: auto; }
+#stage:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
 #log {
   margin: 0; min-height: 5.5em; max-height: 14em; overflow: auto; padding: 8px 10px; white-space: pre-wrap;
   background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px;

@@ -23,6 +23,7 @@
       <button id="stop" type="button" disabled>Stop</button>
       <button id="clear" type="button" disabled>Clear canvas</button>
       <button id="reset" type="button" disabled>Reset</button>
+      <button id="share" type="button" title="Copy a link that opens this program">Share link</button>
     </div>
     <div class="toolbar">
       <label>Example
@@ -55,7 +56,7 @@
   <section class="panel" aria-labelledby="canvas-title">
     <h2 id="canvas-title">Canvas</h2>
     <div class="stage">
-      <canvas id="stage" width="800" height="600" role="img" aria-label="Turtle graphics canvas"></canvas>
+      <canvas id="stage" width="800" height="600" tabindex="0" role="img" aria-label="Turtle graphics canvas. Click it, then press keys, when a program is waiting for one."></canvas>
     </div>
     <div class="toolbar">
       <span id="status" role="status">Starting&hellip;</span>
@@ -73,8 +74,8 @@
 <footer>
   <p>The same Python engine as the terminal version, running in your browser through
   <a href="https://pyodide.org/">Pyodide</a>, which this page loads from the jsDelivr network the first time. Your programs never leave your browser.
-  Commands that wait for typing (<code>READWORD</code>, <code>READCHAR</code>) see an empty keyboard here.
-  Type <code>HELP</code> for every command.</p>
+  While a program runs, <kbd>Esc</kbd> stops it; <code>READWORD</code> reads the box under the editor and
+  <code>READCHAR</code> reads keys pressed on the canvas. Type <code>HELP</code> for every command.</p>
 </footer>
 <script type="module" src="app.js"></script>
 </body>

@@ -1,5 +1,12 @@
 # Changelog - Terminal Logo Turtle
 
+## [2026-10-07] - Browser version: smoother animation, labels in downloads, share links, typing and Stop
+- **Animation:** the engine now sends only the rows of the picture that changed (as RGBA bytes) instead of a whole PNG, and the page draws the turtle and `LABEL` text itself. `Canvas` tracks the changed rows (`take_dirty_rows`, `mark_all_dirty`) and can produce them (`rgba_rows`). A speed-8 circle that took about 1.4 seconds now takes about 0.5, and a speed-5 square runs at the set pace
+- **Exports:** PNG downloads are made by the page from the drawing plus `LABEL` text, without the turtle marker; SVG downloads now include `LABEL` text as `<text>` elements
+- **Share link:** copies an address holding the program, compressed with deflate and kept after the `#` so no server sees it. Opening one loads the program into the editor and does not run it
+- **Typing and Stop:** `READWORD`, `READLIST`, `READCHAR` and `KEYP` now work in the page (lines from the box under the editor, keys from the canvas), `WAIT` can be interrupted, and Stop and Esc raise `KeyboardInterrupt` in Python, so the workspace survives. This uses shared memory, which needs a cross-origin isolated page; `web/coi-sw.js`, a small service worker, supplies the headers GitHub Pages cannot (one automatic reload on the first visit). Where that is unavailable, or Python will not start with it, the page falls back to the earlier behaviour and remembers (`localStorage`, or `?nocoi`)
+- Tests: 17 for the glue (`tests/test_web.py`, with a fake host for input and Stop) and 43 browser checks in `tools/web_smoke.mjs`, including the fallback and a failed start. All pass in headless Chromium against a local server standing in for the CDN. Not tried in Safari or Firefox, on a phone, or with the real CDN while isolated (the headers the CDN sends should allow it, but this is the one thing that could stop Python starting there; the page then retries without shared memory)
+
 ## [2026-10-07] - Link to the live browser version
 - The README and the GitHub front page (`.github/README.md`) now link to the live browser version at https://www.andybateman.com/termlogo/, near the top. The repository's website field is a GitHub setting, not a file: `gh repo edit andybateman/termlogo --homepage https://www.andybateman.com/termlogo/`
 

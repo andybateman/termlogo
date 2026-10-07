@@ -92,6 +92,24 @@ class _Bytes(dict):
         return b
 
 
+class _RGBA(dict):
+    """Pixel colour -> four bytes (red, green, blue, alpha), built on demand. A pixel
+    that was never painted is the background, and translucent colours keep their alpha."""
+
+    def __init__(self, bg, alpha):
+        super().__init__()
+        self.bg, self.alpha = bg, alpha
+
+    def __missing__(self, colour):
+        if self.alpha:
+            rgba = composite(colour, self.bg)
+            b = bytes((*rgba[:3], int(round(rgba[3] * 255))))
+        else:
+            b = bytes((*(colour if colour is not None else self.bg)[:3], 255))
+        self[colour] = b
+        return b
+
+
 class Canvas:
     _brushes = {}
 
@@ -112,6 +130,8 @@ class Canvas:
         self._cropped = {}
         self.labels = []  # (col, row, text, rgb)
         self.dirty = True
+        self._dy0, self._dy1 = self.height, -1  # rows changed since take_dirty_rows()
+        self._lut = None
 
     def set_scale(self, user_scale):
         new_scale = self.base_scale * user_scale
@@ -170,6 +190,7 @@ class Canvas:
             ncol, nrow = int(px // target.cell[0]), int(py // target.cell[1])
             target.labels.append((ncol, nrow, text, rgb))
         target.dirty = True
+        target.mark_all_dirty()
 
     # ---- coordinates -----------------------------------------------------
     def to_pixel(self, x, y):
@@ -199,8 +220,35 @@ class Canvas:
         self._cropped.clear()
         self.labels = []
         self.dirty = True
+        self.mark_all_dirty()
+
+    # ---- which rows changed (for front ends that send only what is new) -----
+    def mark_all_dirty(self):
+        self._dy0, self._dy1 = 0, self.height - 1
+
+    def take_dirty_rows(self):
+        """The (first, last) rows that may have changed since the last call, or None."""
+        if self._dy1 < 0:
+            return None
+        rows = (self._dy0, self._dy1)
+        self._dy0, self._dy1 = self.height, -1
+        return rows
+
+    def rgba_rows(self, first, last):
+        """Rows first..last as RGBA bytes, four per pixel, for a browser canvas."""
+        if self._lut is None or self._lut.bg != self.bg or self._lut.alpha != self.alpha:
+            self._lut = _RGBA(self.bg, self.alpha)
+        lookup = self._lut.__getitem__
+        return b''.join(
+            b''.join(map(lookup, self.pix[y]))
+            for y in range(max(0, first), min(self.height, last + 1))
+        )
 
     def _paint(self, x, y, rgb, coverage=1, painted=None):
+        if y < self._dy0:
+            self._dy0 = y
+        if y > self._dy1:
+            self._dy1 = y
         if len(rgb) == 3:
             self.pix[y][x] = rgb
             return
@@ -262,6 +310,10 @@ class Canvas:
         for dx, dy in self.brush(size):
             px, py = x + dx, y + dy
             if 0 <= px < self.width and 0 <= py < self.height:
+                if py < self._dy0:
+                    self._dy0 = py
+                if py > self._dy1:
+                    self._dy1 = py
                 if mode == 'erase':
                     self.pix[py][px] = None
                 elif mode == 'reverse':
@@ -281,6 +333,10 @@ class Canvas:
 
     def blend(self, x, y, rgb, alpha, painted=None):
         if 0 <= x < self.width and 0 <= y < self.height and alpha > 0.004:
+            if y < self._dy0:
+                self._dy0 = y
+            if y > self._dy1:
+                self._dy1 = y
             if len(rgb) == 4:
                 self._paint(x, y, rgb, alpha, painted)
             elif alpha >= 0.996:

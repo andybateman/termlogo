@@ -5,8 +5,12 @@ function and calls `run`, `export` and `reset`; the session sends back what to s
 
     post('out', text)                     text printed by the program
     post('clear')                         CLEARTEXT
-    post('frame', png, labels)            the picture as PNG bytes, and LABEL texts as
-                                          [x, y, text, red, green, blue] in pixels
+    post('frame', rgba, first, last, labels, marker)
+                                          the rows first..last of the picture as RGBA
+                                          bytes (an empty `rgba` when none changed),
+                                          LABEL texts as [x, y, text, r, g, b] in
+                                          pixels, and the turtle as
+                                          [x, y, heading, r, g, b] ([] when hidden)
     post('done', error)                   the run finished; error is '' when it went well
     post('file', name, mime, data, notes) the result of `export`
 """
@@ -14,6 +18,7 @@ function and calls `run`, `export` and `reset`; the session sends back what to s
 import os
 import tempfile
 import time
+from xml.sax.saxutils import escape
 
 from .canvas import Canvas
 from .errors import Bye, Goto, Incomplete, LogoError, Output, Stop, Throw
@@ -45,33 +50,56 @@ def _no_input(prompt=''):
 class Session:
     """One Logo workspace with a pixel canvas, driven from a web page."""
 
-    def __init__(self, post, width=800, height=600, colour_mode='ucblogo'):
+    def __init__(self, post, width=800, height=600, colour_mode='ucblogo', host=None):
         self.post = post
+        self.host = host
         self.colour_mode = colour_mode
         self.width, self.height = width - width % 2, height - height % 2
         self._sent = 0.0
+        self._full = True  # the next picture carries every row
         self.canvas = Canvas(self.width // 2, self.height // 2, cell=(2, 2), aa=True)
         self.turtle = Turtle(self.canvas, colour_mode=colour_mode)
         self.it = Interp(out=lambda text: self.post('out', text))
         self.it.attach_turtle(self.turtle)
         self.it.on_frame = self.turtle.frame_cb = self._frame
         self.it.text_clear = lambda: self.post('clear')
-        self.it.readline = _no_input
-        self.it.readchar = lambda: ''
-        self.it.keyp = lambda: False
+        if host is None:  # nothing can wait for typing: input commands see the end of input
+            self.it.readline = _no_input
+            self.it.readchar = lambda: ''
+            self.it.keyp = lambda: False
+        else:  # the page lent us a way to wait for keys, and to sleep so Stop can interrupt
+            self.it.readline = lambda prompt='': str(host.read_line())
+            self.it.readchar = lambda: str(host.read_char())
+            self.it.keyp = lambda: bool(host.key_ready())
+            self.turtle.sleep = self.it.on_wait = host.sleep
 
     # ---- pictures ----------------------------------------------------------
-    def _frame(self, force=False):
+    def _frame(self, force=False, full=False):
+        """Send the picture: only the rows that changed since the last one sent, unless
+        `full`. Frames asked for by a moving turtle are spaced out; `force` ignores that."""
         now = time.monotonic()
         if not force and now - self._sent < FRAME_GAP:
             return
         self._sent = now
         c = self.canvas
+        rows = c.take_dirty_rows()
+        if full or self._full:
+            rows, self._full = (0, c.height - 1), False
+        rgba = c.rgba_rows(*rows) if rows else b''
+        first, last = rows or (0, -1)
         labels = [
             [col * c.cell[0], row * c.cell[1] + c.cell[1] // 2, text, *c.display_colour(rgb)]
             for col, row, text, rgb in c.labels
         ]
-        self.post('frame', _js(c.frame_png(self.turtle)), _js(labels))
+        self.post('frame', _js(rgba), first, last, _js(labels), _js(self._marker()))
+
+    def _marker(self):
+        """Where to draw the turtle: [x, y, heading, red, green, blue], or [] if hidden."""
+        t, c = self.turtle, self.canvas
+        if not t.visible or (len(t.rgb) == 4 and t.rgb[3] == 0):
+            return []
+        x, y = c.origin_x + t.x * c.scale, c.origin_y - t.y * c.scale
+        return [x, y, t.heading, *c._marker_colour(t)[:3]]
 
     # ---- running -----------------------------------------------------------
     def run(self, source, speed=None):
@@ -85,6 +113,8 @@ class Session:
             error = 'Unfinished list or TO definition'
         except Bye:
             pass
+        except KeyboardInterrupt:
+            error = 'Stopped!'
         except LogoError as e:
             error = e.message
         except Throw as t:
@@ -99,18 +129,37 @@ class Session:
             error = 'Stack overflow'
         except Exception as e:  # never let a program take the page down
             error = f'Internal error: {type(e).__name__}: {e}'
-        self._frame(force=True)
+        self._frame(force=True, full=True)
         self.post('done', error)
         return error
 
     def reset(self, colour_mode=None):
         """Start again with an empty workspace and canvas."""
         speed = self.turtle.speed
-        self.__init__(self.post, self.width, self.height, colour_mode or self.colour_mode)
+        self.__init__(
+            self.post, self.width, self.height, colour_mode or self.colour_mode, self.host
+        )
         self.turtle.speed = speed
-        self._frame(force=True)
+        self._frame(force=True, full=True)
 
     # ---- exports -----------------------------------------------------------
+    def _svg(self):
+        """The canvas as SVG, with LABEL texts added (the pixel canvas does not hold them)."""
+        c = self.canvas
+        texts = [
+            '<text x="%d" y="%d" fill="#%02x%02x%02x" font-family="monospace" font-size="14" '
+            'dominant-baseline="middle">%s</text>'
+            % (
+                col * c.cell[0],
+                row * c.cell[1] + c.cell[1] // 2,
+                *c.display_colour(rgb),
+                escape(text),
+            )
+            for col, row, text, rgb in c.labels
+        ]
+        svg = c.to_svg()
+        return svg.replace('</svg>', '\n'.join(texts) + '\n</svg>') if texts else svg
+
     def export(self, kind):
         """Send the drawing as a file: png, svg or stl (a 3D-printable stencil)."""
         if kind not in EXPORTS:
@@ -121,7 +170,7 @@ class Session:
             if kind == 'png':
                 data = self.canvas.to_png()
             elif kind == 'svg':
-                data = self.canvas.to_svg().encode('utf-8')
+                data = self._svg().encode('utf-8')
             else:
                 from . import stencil
 
