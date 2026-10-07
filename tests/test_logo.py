@@ -15,6 +15,8 @@ from termlogo.lexer import to_number, tokenize
 from termlogo.primitives_ext import _close_all as closeall
 from termlogo.turtle import Turtle
 
+EXAMPLES = os.path.join(os.path.dirname(__file__), '..', 'examples')
+
 
 def run(src, size=(60, 20)):
     out = []
@@ -265,9 +267,31 @@ greet "hello
     def test_python_frame_limit_follows_the_python_version(self):
         from termlogo.interp import python_frame_limit
 
-        self.assertEqual(python_frame_limit((3, 10, 20)), 5000)
-        self.assertEqual(python_frame_limit((3, 11, 0)), 150000)
-        self.assertEqual(python_frame_limit((3, 13, 1)), 400000)
+        self.assertEqual(python_frame_limit((3, 10, 20), 'linux'), 5000)
+        self.assertEqual(python_frame_limit((3, 11, 0), 'darwin'), 150000)
+        self.assertEqual(python_frame_limit((3, 13, 1), 'linux'), 400000)
+        self.assertEqual(python_frame_limit((3, 14, 2), 'emscripten'), 2000)  # browser
+
+    def test_examples_and_moderate_recursion_fit_the_browser_limit(self):
+        # The browser allows only 2,000 Python frames (see python_frame_limit). Every
+        # example, and 100 levels of non-tail recursion, must still run within it.
+        limit = sys.getrecursionlimit()
+        examples = sorted(name for name in os.listdir(EXAMPLES) if name.endswith('.logo'))
+        self.assertGreaterEqual(len(examples), 8)
+        try:
+            sys.setrecursionlimit(2000)
+            with patch('termlogo.interp.python_frame_limit', lambda: 2000):
+                for name in examples:
+                    with self.subTest(example=name), open(os.path.join(EXAMPLES, name)) as f:
+                        _, _, turtle, _ = run(f.read(), size=(100, 50))
+                        self.assertGreater(len(turtle.strokes) + len(turtle.fills), 0)
+                self.assertEqual(sys.getrecursionlimit(), 2000)
+                self.assertEqual(
+                    out('to d :n if :n = 0 [output 0] output 1 + d :n - 1 end print d 100'),
+                    '100\n',
+                )
+        finally:
+            sys.setrecursionlimit(limit)
 
     def test_runaway_recursion_is_an_error(self):
         with self.assertRaises(LogoError):
@@ -1381,6 +1405,20 @@ class PropertyListTests(unittest.TestCase):
         self.assertEqual(out('pprop "me "a 1 erall show plists'), '[]\n')
 
 
+class PropertyListPrintTests(unittest.TestCase):
+    def test_pps_output_reads_back_as_the_same_property_lists(self):
+        source = (
+            'pprop "me "colour "red pprop "me "age 42 pprop "me "pets [cat [dog]] '
+            'pprop "me "motto "|two words|'
+        )
+        text, first, _, _ = run(source + ' pps')
+        self.assertIn('pprop "me "colour "red\n', text)
+        self.assertIn('pprop "me "age 42\n', text)
+        self.assertIn('pprop "me "motto "|two words|\n', text)
+        _, again, _, _ = run(text)
+        self.assertEqual(again.plists, first.plists)
+
+
 class GotoTests(unittest.TestCase):
     def test_goto_loops_within_a_procedure(self):
         source = (
@@ -1477,6 +1515,27 @@ class StreamTests(unittest.TestCase):
             'print filep "FILE'
         )
         self.assertEqual(text, 'false\ntrue\nfalse\n')
+
+    def test_streams_must_suit_setread_and_setwrite(self):
+        with self.assertRaises(LogoError) as caught:
+            self.logo('openwrite "FILE setread "FILE')
+        self.assertIn('not open for reading', caught.exception.message)
+        closeall(run('')[1])
+        with open(self.path, 'w') as f:
+            f.write('x')
+        with self.assertRaises(LogoError) as caught:
+            self.logo('openread "FILE setwrite "FILE')
+        self.assertIn('not open for writing', caught.exception.message)
+
+    def test_bytes_that_are_not_utf8_do_not_stop_a_program(self):
+        with open(self.path, 'wb') as f:
+            f.write(b'caf\xe9\n')
+        self.assertEqual(self.logo('openread "FILE setread "FILE print readword'), 'caf\ufffd\n')
+
+    def test_files_are_closed_at_exit_by_one_registration(self):
+        with patch('termlogo.primitives_ext.atexit.register') as register:
+            self.logo('openwrite "FILE close "FILE openwrite "FILE close "FILE')
+        self.assertEqual(register.call_count, 1)
 
     def test_keyboard_hooks_are_used_without_a_stream(self):
         lines = []

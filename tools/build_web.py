@@ -109,7 +109,10 @@ def fetch_pyodide(version, folder):
         capture_output=True,
     )
     tarball = next(Path(folder).glob('pyodide-*.tgz'))
-    shutil.unpack_archive(tarball, folder, filter='data')
+    try:
+        shutil.unpack_archive(tarball, folder, filter='data')
+    except TypeError:  # Python releases before the tar `filter` argument (npm's tarball is trusted)
+        shutil.unpack_archive(tarball, folder)
     return Path(folder) / 'package'
 
 

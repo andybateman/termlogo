@@ -91,18 +91,28 @@ class WebBuildTests(unittest.TestCase):
                 self.assertNotIn('__BUILD__', (out / name).read_text())
 
     def test_the_stamp_changes_when_the_content_does(self):
+        import importlib.util
+        import shutil
+
+        spec = importlib.util.spec_from_file_location('build_web', ROOT / 'tools' / 'build_web.py')
+        build_web = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(build_web)
+
+        def stamp(folder, extra=b''):
+            folder.mkdir()
+            for page in (ROOT / 'web').iterdir():
+                shutil.copy(page, folder / page.name)
+            build_web.build_package(folder / 'termlogo.zip')
+            build_web.build_examples(folder / 'examples.json')
+            with open(folder / 'examples.json', 'ab') as f:
+                f.write(extra)
+            return build_web.stamp_files(folder)
+
         with tempfile.TemporaryDirectory() as work:
-            first = Path(work) / 'a'
-            self.assertEqual(self.build(first).returncode, 0)
-            stamp = json.loads((first / 'config.json').read_text())['build']
-            example = ROOT / 'examples' / 'zz_stamp_test.logo'
-            example.write_text('print 1\n')
-            try:
-                second = Path(work) / 'b'
-                self.assertEqual(self.build(second).returncode, 0)
-            finally:
-                example.unlink()
-            self.assertNotEqual(json.loads((second / 'config.json').read_text())['build'], stamp)
+            same = stamp(Path(work) / 'a'), stamp(Path(work) / 'b')
+            changed = stamp(Path(work) / 'c', extra=b' ')
+        self.assertEqual(same[0], same[1])
+        self.assertNotEqual(changed, same[0])
 
     def test_building_twice_gives_identical_files(self):
         with tempfile.TemporaryDirectory() as work:

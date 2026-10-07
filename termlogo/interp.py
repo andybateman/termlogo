@@ -12,12 +12,19 @@ UNSET = object()
 MAX_DEPTH = 25000
 
 
-def python_frame_limit(version=sys.version_info):
+def python_frame_limit(version=sys.version_info, platform=sys.platform):
     """How deep Python may recurse while running Logo. Python 3.12 and later watch the C
     stack themselves and raise RecursionError in time, so deep Logo recursion ends in
     'Stack overflow'. Older versions crash outright when the C stack runs out, which on an
     8 MB stack happened beyond about 8,700 frames on 3.10 and 260,000 on 3.11 (measured
-    2026-10-07, recursion through REPEAT, RUN, CATCH and MAP included), so stay well inside."""
+    2026-10-07, recursion through REPEAT, RUN, CATCH and MAP included), so stay well inside.
+
+    In a browser (Pyodide, platform 'emscripten') deep recursion itself is fine, but an
+    exception unwinding through more than about 3,000 frames exhausts the browser's stack
+    and kills Python (measured in a Chromium worker, Pyodide 314.0.7). Errors, STOP, OUTPUT,
+    THROW and the Stop button all travel as exceptions, so the limit there is lower still."""
+    if platform == 'emscripten':
+        return 2000
     if version >= (3, 12):
         return 400000
     return 150000 if version >= (3, 11) else 5000

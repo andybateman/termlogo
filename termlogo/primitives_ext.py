@@ -136,11 +136,22 @@ def plists(it):
     return list(it.plists)
 
 
+def _literal(value):
+    """A value written so that Logo reads it back the same: "word, number or [list]."""
+    if isinstance(value, (list, LogoArray)) or V.is_num(value):
+        return V.fmt(value)
+    text = V.fmt(value)
+    if not text or any(c.isspace() or c in '[](){};|' for c in text):
+        return f'"|{text}|'
+    return '"' + text
+
+
 @prim('pps', 0)
 def pps(it):
+    """Print every property list as PPROP commands that rebuild it."""
     for name, props in it.plists.items():
         for prop, value in props.items():
-            it.write(f'pprop "{name} "{prop} {V.fmt(value)}\n')
+            it.write(f'pprop {_literal(name)} {_literal(prop)} {_literal(value)}\n')
 
 
 @prim('erps', 0)
@@ -174,13 +185,16 @@ def _open(it, name, mode, who):
         raise LogoError(f'File {key} is already open')
     try:
         if mode == 'r+' and not os.path.exists(key):
-            open(key, 'w').close()
-        stream = open(key, mode)
+            open(key, 'w', encoding='utf-8').close()
+        # UTF-8 everywhere, and bytes that are not UTF-8 read as a replacement character
+        # rather than stopping the program.
+        stream = open(key, mode, encoding='utf-8', errors='replace')
     except OSError as e:
         raise LogoError(f"Can't open {key}: {e.strerror}") from None
     it.streams[key] = stream
-    if len(it.streams) == 1:
-        atexit.register(_close_all, it)
+    if not getattr(it, '_closes_files_at_exit', False):
+        atexit.register(_close_all, it)  # so what was written is not lost at exit
+        it._closes_files_at_exit = True
 
 
 def _close_all(it):
@@ -250,12 +264,24 @@ def allopen(it):
 
 @prim('setread', 1)
 def setread(it, name):
-    it.reader = None if name == [] else _stream(it, name, 'setread')
+    if name == []:
+        it.reader = None
+        return
+    stream = _stream(it, name, 'setread')
+    if not stream.readable():
+        raise LogoError(f'{V.word(name)} is not open for reading')
+    it.reader = stream
 
 
 @prim('setwrite', 1)
 def setwrite(it, name):
-    it.writer = None if name == [] else _stream(it, name, 'setwrite')
+    if name == []:
+        it.writer = None
+        return
+    stream = _stream(it, name, 'setwrite')
+    if not stream.writable():
+        raise LogoError(f'{V.word(name)} is not open for writing')
+    it.writer = stream
 
 
 @prim('reader', 0)

@@ -29,8 +29,9 @@ class WebSessionTests(unittest.TestCase):
         self.assertEqual(s.run('print 2 + 3 repeat 4 [fd 30 rt 90]', speed=0), '')
         self.assertEqual(post.text(), '5\n')
         self.assertEqual(post.of('done'), [('',)])
-        rgba, first, last, labels, marker = post.of('frame')[-1]
-        self.assertEqual((first, last), (0, s.height - 1))
+        rgba, first, last, labels, marker, view = post.of('frame')[-1]
+        self.assertEqual((first, last), (0, s.height - 1))  # the first picture is whole
+        self.assertEqual(view[:2], [s.width, s.height])
         self.assertEqual(len(rgba), s.width * s.height * 4)
         self.assertEqual(labels, [])
         self.assertEqual(len(marker), 6)
@@ -76,7 +77,7 @@ class WebSessionTests(unittest.TestCase):
     def test_labels_travel_with_the_picture(self):
         s, post = session()
         s.run('setpc 4 pu setxy 10 20 label "hi', speed=0)
-        _, _, _, labels, _ = post.of('frame')[-1]
+        labels = post.of('frame')[-1][3]
         self.assertEqual(len(labels), 1)
         x, y, text, r, g, b = labels[0]
         self.assertEqual((text, (r, g, b)), ('hi', (255, 0, 0)))
@@ -93,7 +94,7 @@ class WebSessionTests(unittest.TestCase):
     def test_the_final_picture_is_complete_and_correct(self):
         s, post = session()
         s.run('setpc 4 setpensize 1 pu setxy -20 0 pd setxy 20 0', speed=0)
-        rgba, first, last, _, _ = post.of('frame')[-1]
+        rgba, first, last, *_ = post.of('frame')[-1]
         px, py = s.canvas.to_pixel(0, 0)
         # the line is anti-aliased across the two rows it straddles
         reds = [rgba[((row * s.width) + px) * 4] for row in (py - 1, py)]
@@ -109,7 +110,7 @@ class WebSessionTests(unittest.TestCase):
             s.run('repeat 200 [fd 1]', speed=10)
         partial = [f for f in post.of('frame')[:-1] if f[2] - f[1] + 1 < s.height]
         self.assertTrue(partial, 'expected frames with fewer than all rows')
-        for rgba, first, last, _, _ in post.of('frame'):
+        for rgba, first, last, *_ in post.of('frame'):
             self.assertEqual(len(rgba), (last - first + 1) * s.width * 4)
 
     def test_the_turtle_marker_follows_the_turtle_and_hides(self):
@@ -120,6 +121,72 @@ class WebSessionTests(unittest.TestCase):
         x, y, heading, r, g, b = post.of('frame')[-1][4]
         self.assertAlmostEqual(x, s.canvas.origin_x + 10, places=3)
         self.assertEqual((y, heading), (s.canvas.origin_y, 90))
+
+    def test_later_pictures_carry_only_the_rows_that_changed(self):
+        s, post = session()
+        s.run('fd 10', speed=0)
+        s.run('pu setxy -30 -30 pd setxy -20 -30', speed=0)
+        rgba, first, last, *_ = post.of('frame')[-1]
+        row = s.canvas.to_pixel(0, -30)[1]
+        self.assertLessEqual(first, row)
+        self.assertGreaterEqual(last, row)
+        self.assertLess(last - first + 1, 6)  # a short level line: a handful of rows
+        self.assertEqual(len(rgba), (last - first + 1) * s.width * 4)
+
+    def test_a_new_background_sends_the_whole_picture(self):
+        s, post = session()
+        s.run('fd 10', speed=0)
+        s.run('setbg 1', speed=0)
+        rgba, first, last, *_ = post.of('frame')[-1]
+        self.assertEqual((first, last), (0, s.height - 1))
+        self.assertEqual(tuple(rgba[0:4]), (0, 0, 255, 255))  # untouched pixels turned blue
+        s.run('print 1', speed=0)
+        self.assertEqual(post.of('frame')[-1][0], b'')  # nothing changed this time
+
+    def test_refresh_sends_the_whole_picture(self):
+        s, post = session()
+        s.run('fd 10', speed=0)
+        s.refresh()
+        _, first, last, *_ = post.of('frame')[-1]
+        self.assertEqual((first, last), (0, s.height - 1))
+
+    def test_resize_keeps_the_drawing_turtle_and_workspace(self):
+        s, post = session()
+        s.run('make "keep 7 setpc 4 setxy 40 0 rt 90', speed=0)
+        s.resize(300, 200)
+        rgba, first, last, labels, marker, view = post.of('frame')[-1]
+        self.assertEqual((s.width, s.height, view[0], view[1]), (300, 200, 300, 200))
+        self.assertEqual((first, last), (0, 199))
+        self.assertEqual(len(rgba), 300 * 200 * 4)
+        px, py = s.canvas.to_pixel(20, 0)
+        reds = [(s.canvas.pix[row][px] or (0, 0, 0))[0] for row in (py - 1, py)]
+        self.assertAlmostEqual(sum(reds), 255, delta=2)  # the line moved across, anti-aliased
+        self.assertAlmostEqual(marker[0], s.canvas.origin_x + 40)  # so did the turtle
+        self.assertEqual(s.run('print :keep', speed=0), '')
+        self.assertTrue(post.text().endswith('7\n'))
+        before = len(post.of('frame'))
+        s.resize(300, 200)  # the same size again: nothing to do
+        self.assertEqual(len(post.of('frame')), before)
+
+    def test_resize_keeps_setscale_and_fitwindow(self):
+        s, post = session()
+        s.run('setscale 0.5', speed=0)
+        s.resize(400, 300)
+        self.assertAlmostEqual(s.canvas.scale, 0.5)
+        s.run('fitwindow 1000', speed=0)
+        s.resize(600, 400)
+        self.assertAlmostEqual(s.canvas.scale, 400 / 1000)
+        self.assertEqual(post.of('frame')[-1][5][4], s.canvas.scale)  # view: scale last
+
+    def test_sizes_are_even_and_capped(self):
+        s, _ = session()
+        s.resize(301, 201)
+        self.assertEqual((s.width, s.height), (300, 200))
+        s.resize(5000, 3000)
+        self.assertLessEqual(s.width * s.height, 1920 * 1200)
+        self.assertAlmostEqual(s.width / s.height, 5000 / 3000, places=2)
+        s.resize(0, 0)
+        self.assertEqual((s.width, s.height), (2, 2))
 
     def test_input_commands_see_the_end_of_input(self):
         s, post = session()

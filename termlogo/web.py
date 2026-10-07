@@ -1,18 +1,21 @@
 """Glue for the browser version (Pyodide): runs Logo and hands pictures to JavaScript.
 
 Nothing here touches a terminal. A page creates a `Session` with a `post(kind, *args)`
-function and calls `run`, `export` and `reset`; the session sends back what to show:
+function and calls `run`, `export`, `reset`, `resize` and `refresh`; the session sends back
+what to show:
 
     post('out', text)                     text printed by the program
     post('clear')                         CLEARTEXT
-    post('frame', rgba, first, last, labels, marker)
+    post('frame', rgba, first, last, labels, marker, view)
                                           the rows first..last of the picture as RGBA
                                           bytes (an empty `rgba` when none changed),
                                           LABEL texts as [x, y, text, r, g, b] in
-                                          pixels, and the turtle as
-                                          [x, y, heading, r, g, b] ([] when hidden)
+                                          pixels, the turtle as [x, y, heading, r, g, b]
+                                          ([] when hidden), and the canvas as
+                                          [width, height, origin x, origin y, scale]
     post('done', error)                   the run finished; error is '' when it went well
     post('file', name, mime, data, notes) the result of `export`
+    post('file-error', message)           `export` had nothing to make a file from
 """
 
 import os
@@ -26,6 +29,7 @@ from .interp import Interp
 from .turtle import Turtle
 
 FRAME_GAP = 0.08  # seconds between pictures sent while a program animates
+MAX_PIXELS = 1920 * 1200  # a bigger window is drawn at this size and stretched to fit
 EXPORTS = {
     'png': ('termlogo.png', 'image/png'),
     'svg': ('termlogo.svg', 'image/svg+xml'),
@@ -43,6 +47,21 @@ def _js(value):
     return to_js(value)
 
 
+def _fit(width, height):
+    """Even pixel sizes (the canvas is made of 2 x 2 cells), at least 2 x 2, and no more than
+    MAX_PIXELS in all, keeping the shape."""
+    width, height = max(2, int(width)), max(2, int(height))
+    if width * height > MAX_PIXELS:
+        shrink = (MAX_PIXELS / (width * height)) ** 0.5
+        width, height = int(width * shrink), int(height * shrink)
+    return width - width % 2, height - height % 2
+
+
+def _canvas(width, height):
+    """A canvas with one pixel per turtle step and anti-aliased lines."""
+    return Canvas(width // 2, height // 2, cell=(2, 2), aa=True)
+
+
 def _no_input(prompt=''):
     raise EOFError  # a page cannot stop and wait for typing: READWORD and READLIST see the end
 
@@ -54,10 +73,11 @@ class Session:
         self.post = post
         self.host = host
         self.colour_mode = colour_mode
-        self.width, self.height = width - width % 2, height - height % 2
+        self.width, self.height = _fit(width, height)
         self._sent = 0.0
         self._full = True  # the next picture carries every row
-        self.canvas = Canvas(self.width // 2, self.height // 2, cell=(2, 2), aa=True)
+        self._look = None  # background and alpha mode of the last picture sent
+        self.canvas = _canvas(self.width, self.height)
         self.turtle = Turtle(self.canvas, colour_mode=colour_mode)
         self.it = Interp(out=lambda text: self.post('out', text))
         self.it.attach_turtle(self.turtle)
@@ -76,22 +96,43 @@ class Session:
     # ---- pictures ----------------------------------------------------------
     def _frame(self, force=False, full=False):
         """Send the picture: only the rows that changed since the last one sent, unless
-        `full`. Frames asked for by a moving turtle are spaced out; `force` ignores that."""
+        `full` or the background changed (SETBG repaints every untouched pixel). Frames asked
+        for by a moving turtle are spaced out; `force` ignores that."""
         now = time.monotonic()
         if not force and now - self._sent < FRAME_GAP:
             return
         self._sent = now
         c = self.canvas
         rows = c.take_dirty_rows()
-        if full or self._full:
-            rows, self._full = (0, c.height - 1), False
+        look = (c.bg, c.alpha)
+        if full or self._full or look != self._look:
+            rows, self._full, self._look = (0, c.height - 1), False, look
         rgba = c.rgba_rows(*rows) if rows else b''
         first, last = rows or (0, -1)
         labels = [
             [col * c.cell[0], row * c.cell[1] + c.cell[1] // 2, text, *c.display_colour(rgb)]
             for col, row, text, rgb in c.labels
         ]
-        self.post('frame', _js(rgba), first, last, _js(labels), _js(self._marker()))
+        view = [c.width, c.height, c.origin_x, c.origin_y, c.scale]
+        self.post('frame', _js(rgba), first, last, _js(labels), _js(self._marker()), _js(view))
+
+    def refresh(self):
+        """Send the whole picture, for a page that has none yet."""
+        self._frame(force=True, full=True)
+
+    def resize(self, width, height):
+        """Give the canvas a new size in pixels (the page's viewer changed size). The
+        drawing keeps its Logo coordinates, and parts outside the new size come back when
+        it grows again; the turtle, pen, scale and workspace are untouched."""
+        width, height = _fit(width, height)
+        if (width, height) == (self.width, self.height):
+            return
+        new = _canvas(width, height)
+        new.set_scale(self.canvas.scale / self.canvas.base_scale)
+        self.canvas.copy_to(new)
+        self.canvas = self.turtle.canvas = new
+        self.width, self.height = width, height
+        self.refresh()
 
     def _marker(self):
         """Where to draw the turtle: [x, y, heading, red, green, blue], or [] if hidden."""
@@ -129,7 +170,7 @@ class Session:
             error = 'Stack overflow'
         except Exception as e:  # never let a program take the page down
             error = f'Internal error: {type(e).__name__}: {e}'
-        self._frame(force=True, full=True)
+        self._frame(force=True)
         self.post('done', error)
         return error
 
@@ -140,7 +181,7 @@ class Session:
             self.post, self.width, self.height, colour_mode or self.colour_mode, self.host
         )
         self.turtle.speed = speed
-        self._frame(force=True, full=True)
+        self.refresh()
 
     # ---- exports -----------------------------------------------------------
     def _svg(self):
