@@ -10,7 +10,7 @@ A Logo interpreter with turtle graphics that runs entirely in the terminal, usin
 - Ruff lint and format are clean, and the 343 unit and pseudo-terminal tests pass on Python 3.10, 3.11, 3.12 and 3.13. The browser smoke test passes all 72 checks in headless Chromium (as at 2026-10-07; run the commands under "How to pick it up" for the live result).
 - Added on 2026-10-07 (later): nested `FILLED` repaint, arrays, property lists, file streams, `READCHAR`/`KEYP`, `CURSOR`/`SETCURSOR`, `GOTO`/`TAG`, `.MAYBEOUTPUT`, round pens, XOR `PENREVERSE`, `--fit`.
 - Added on 2026-10-07: keyboard editing of multi-line commands recalled from history, `.stl` added to `STENCIL` names, `FILL` and `FILLED` areas cut out of the stencil, and a repaired `FILLED`.
-- Not yet checked by hand: the later additions (item 13), the new command-pane keys in a real Ghostty window, and the fill cut-outs in a slicer or on the printer. Both are covered only by automated tests so far.
+- Not yet checked by hand: the later additions (item 13), the new command-pane keys in a real Ghostty window, the fill cut-outs in a slicer or on the printer, and the redesigned page outside Chromium (suggestion 2). All of these are covered only by automated tests so far.
 
 ## Decisions made
 | Decision | Why |
