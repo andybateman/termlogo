@@ -37,6 +37,7 @@ header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; p
 h1 { font-size: 1.4rem; margin: 0; }
 h2 { font-size: 0.95rem; margin: 12px 0 6px; color: var(--muted); font-weight: 600; letter-spacing: 0.02em; }
 .tagline { margin: 0; color: var(--muted); }
+.build { margin: 0; color: var(--muted); font: 0.8rem ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
 nav { margin-left: auto; }
 main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 16px; margin-top: 12px; }
 @media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); } }

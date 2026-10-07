@@ -12,6 +12,7 @@ index.html from disk will not work.
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -33,11 +34,36 @@ TERMINAL_ONLY = {'repl.py', '__main__.py'}
 
 
 def build_package(target):
-    """termlogo.zip: the package without the terminal front end."""
+    """termlogo.zip: the package without the terminal front end. The archive is the same
+    bytes every time for the same source (fixed dates), so publishing it twice changes nothing."""
     with zipfile.ZipFile(target, 'w', zipfile.ZIP_DEFLATED) as archive:
         for path in sorted((ROOT / 'termlogo').glob('*.py')):
             if path.name not in TERMINAL_ONLY:
-                archive.write(path, f'termlogo/{path.name}')
+                info = zipfile.ZipInfo(f'termlogo/{path.name}', date_time=(1980, 1, 1, 0, 0, 0))
+                info.compress_type = zipfile.ZIP_DEFLATED
+                info.external_attr = 0o644 << 16
+                archive.writestr(info, path.read_bytes())
+
+
+def build_info():
+    """What the page shows about itself: the version, and the commit it was built from
+    ('+changes' when the working tree differs from that commit). Nothing here depends on
+    the clock, so building the same commit twice gives the same files."""
+    version = re.search(r"__version__ = '([^']+)'", (ROOT / 'termlogo' / '__init__.py').read_text())
+
+    def git(*args):
+        return subprocess.run(
+            ['git', *args], cwd=ROOT, check=True, capture_output=True, text=True
+        ).stdout.strip()
+
+    commit = built = ''
+    try:
+        commit, built = git('log', '-1', '--format=%h %cs').split()
+        if git('status', '--porcelain', '--', 'termlogo', 'web', 'examples'):
+            commit += '+changes'
+    except (OSError, subprocess.CalledProcessError, ValueError):
+        pass  # not a git checkout: the version alone is shown
+    return {'version': version.group(1) if version else '', 'commit': commit, 'built': built}
 
 
 def build_examples(target):
@@ -99,7 +125,7 @@ def main():
                         f'{source / name} is missing; is this a Pyodide {PYODIDE_VERSION} folder?'
                     )
                 shutil.copy(source / name, out / 'pyodide' / name)
-    config = {'pyodideVersion': PYODIDE_VERSION, 'bundled': bundled}
+    config = {'pyodideVersion': PYODIDE_VERSION, 'bundled': bundled, **build_info()}
     (out / 'config.json').write_text(json.dumps(config), encoding='utf-8')
     total = sum(f.stat().st_size for f in out.rglob('*') if f.is_file())
     print(f'Built {out} ({total / 1e6:.1f} MB). Serve it: python3 -m http.server -d {out}')

@@ -75,6 +75,9 @@ const waitStatus = (app, prefix) => app.page.waitForFunction(
   const app = await open();
   const { page } = app;
   step('page is cross-origin isolated (service worker)', await page.evaluate(() => self.crossOriginIsolated));
+  const shownVersion = (await app.status()).match(/termlogo (\S+)\)/)?.[1];
+  const build = await page.textContent('#build');
+  step('the page shows the version it runs', Boolean(shownVersion) && build.includes(`v${shownVersion}`), build);
 
   await page.selectOption('#speed', '0');
   await page.click('#run'); await app.idle();

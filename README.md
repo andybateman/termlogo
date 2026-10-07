@@ -144,10 +144,11 @@ python3 -m http.server -d dist/web         # then open http://localhost:8000
 ```
 Open it through a web server, not by double-clicking `index.html` (the page loads a module worker). Pyodide itself (about 12 MB) is loaded from the jsDelivr CDN on the first visit and cached by the browser after that. For a site that works offline or where the CDN is blocked, build with `--bundle-pyodide` (needs npm) to put a copy beside the page, or open the page with `?pyodide=https://...` to use another address. `docs/pages-workflow.yml` is a ready-made workflow for publishing this repository's own GitHub Pages instead (it has to be moved to `.github/workflows/` by someone whose token may push workflows).
 
-**Live copy:** it is hosted at <https://www.andybateman.com/termlogo/>, as static files in the `andybateman/andybateman.github.io` repository. To update it, build into that repository and commit there (the build only ever replaces a folder it made itself, or an empty one):
+**Live copy:** it is hosted at <https://www.andybateman.com/termlogo/>, as static files in the `andybateman/andybateman.github.io` repository. After you commit and push a change here, publish it with one command (it builds into the site checkout beside this one, commits and pushes; `--no-push` stops before pushing, and a path argument names a different site checkout):
 ```bash
-python3 tools/build_web.py --out ../andybateman.github.io/termlogo
+tools/publish_site.sh
 ```
+The page shows the version, commit and date it was built from under its title, and `https://www.andybateman.com/termlogo/config.json` holds the same, so you can tell at a glance whether the live copy is behind this repository. The build is reproducible: the same commit gives the same files, so publishing twice changes nothing.
 
 **What it does:**
 - Pictures are sent as the rows that changed, and the turtle and `LABEL` text are drawn by the page, so animation keeps up with the set speed.
@@ -192,6 +193,8 @@ Still different from the terminal: `SAVEPICT` writes to a hidden in-memory folde
 | `bin/termlogo` | Launcher that runs from this folder without installing |
 | `Formula/termlogo.rb` | Homebrew formula (tap this repository by URL) |
 | `web/` | The browser page: `index.html`, `app.js` (editor, canvas, buttons, sharing), `worker.js` (Pyodide and input), `coi-sw.js` (service worker for shared memory), `style.css`, `favicon.svg` |
+| `tools/publish_site.sh` | Builds the browser version into the `andybateman.github.io` checkout, commits and pushes it |
+| `tools/update_formula.sh` | Points the Homebrew formula at a release (run it once the release's tag exists) |
 | `tools/build_web.py` | Builds `dist/web`: the page, the package as `termlogo.zip`, examples, and optionally a copy of Pyodide |
 | `tools/web_smoke.mjs` | Optional end-to-end check of the browser version |
 | `tools/build_pyz.sh` | Builds the single-file `dist/termlogo.pyz` (git-ignored) |

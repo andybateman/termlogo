@@ -1,5 +1,10 @@
 # Changelog - Terminal Logo Turtle
 
+## [2026-10-07] - Browser version shows its version; one-command publishing
+- The page now shows the version, commit and date it was built from under its title (for example `v1.1.0 · 4391b23 · 2026-10-07`, with `+changes` if the working tree differed from the commit), and `config.json` carries the same, so a stale live copy is easy to spot
+- `tools/publish_site.sh` builds into the `andybateman.github.io` checkout, commits and pushes (`--no-push` stops before the push; it refuses a site checkout with other uncommitted changes). The build is now reproducible: the package zip uses fixed file dates and the stamp uses the commit's own date, so the same commit gives the same bytes and publishing twice commits nothing
+- Tests: build and publish tests in `tests/test_build.py` (a throwaway git repository stands in for the site), and a browser check that the page shows the version Python reports
+
 ## [2026-10-07] - v1.1.0
 - Released the browser version (live at https://www.andybateman.com/termlogo/) with its smoother animation, `LABEL` text in downloads, share links, typing into running programs and interruptible Stop, plus the Homebrew formula, the single-file `termlogo.pyz`, the redrawn AB monogram example and the MIT licence. The CLI, startup banner, `VERSION` reporter and README now use version 1.1.0. Added `tools/update_formula.sh VERSION`, which points the Homebrew formula at a release once its tag exists
 

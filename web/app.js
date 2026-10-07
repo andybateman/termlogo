@@ -6,11 +6,14 @@ const params = new URLSearchParams(location.search);
 // Where Pyodide comes from: ?pyodide=URL, else the copy beside the page if the build bundled
 // one (see config.json), else the jsDelivr copy of the npm package.
 const DEFAULT_PYODIDE_VERSION = '314.0.7';
-async function pyodideBase() {
-  let config = {};
+async function loadConfig() {
   try {
-    config = await (await fetch('config.json')).json();
-  } catch { /* no config: use the defaults */ }
+    return await (await fetch('config.json', { cache: 'no-cache' })).json();
+  } catch {
+    return {}; // no config: use the defaults
+  }
+}
+async function pyodideBase(config) {
   const version = config.pyodideVersion || DEFAULT_PYODIDE_VERSION;
   const base = params.get('pyodide')
     || (config.bundled ? './pyodide/' : `https://cdn.jsdelivr.net/npm/pyodide@${version}/`);
@@ -227,7 +230,7 @@ async function startWorker() {
   setStatus('Starting…');
   const isolation = await setUpSharedMemory();
   if (isolation === 'reloading') return;
-  const base = await pyodideBase();
+  const base = await pyodideBase(await loadConfig());
   worker = new Worker(new URL('worker.js', import.meta.url), { type: 'module' });
   worker.onmessage = ({ data }) => handle(data.kind, data.args);
   worker.onerror = (event) => {
@@ -471,4 +474,8 @@ ui.code.value = recall(STORE_CODE) || DEFAULT_CODE;
 ctx.fillStyle = '#000';
 ctx.fillRect(0, 0, SIZE.width, SIZE.height);
 loadExamples();
+loadConfig().then((config) => {
+  const parts = [config.version && `v${config.version}`, config.commit, config.built];
+  $('build').textContent = parts.filter(Boolean).join(' · ');
+});
 loadShared().then(startWorker);
