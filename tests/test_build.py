@@ -70,6 +70,7 @@ class WebBuildTests(unittest.TestCase):
                 'coi-sw.js',
                 'termlogo.zip',
                 'examples.json',
+                'help.json',
             ):
                 self.assertTrue((out / name).is_file(), name)
 
@@ -84,6 +85,7 @@ class WebBuildTests(unittest.TestCase):
                 ('index.html', f'style.css?v={stamp}'),
                 ('app.js', f'worker.js?v={stamp}'),
                 ('app.js', f'examples.json?v={stamp}'),
+                ('app.js', f'help.json?v={stamp}'),
                 ('worker.js', f'termlogo.zip?v={stamp}'),
             ):
                 self.assertIn(needle, (out / name).read_text(), f'{name}: {needle}')
@@ -104,6 +106,7 @@ class WebBuildTests(unittest.TestCase):
                 shutil.copy(page, folder / page.name)
             build_web.build_package(folder / 'termlogo.zip')
             build_web.build_examples(folder / 'examples.json')
+            build_web.build_help(folder / 'help.json')
             with open(folder / 'examples.json', 'ab') as f:
                 f.write(extra)
             return build_web.stamp_files(folder)

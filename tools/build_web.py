@@ -58,6 +58,7 @@ def stamp_files(out):
         'coi-sw.js',
         'termlogo.zip',
         'examples.json',
+        'help.json',
     )
     digest = hashlib.sha256()
     for name in names:
@@ -90,6 +91,26 @@ def build_info():
     except (OSError, subprocess.CalledProcessError, ValueError):
         pass  # not a git checkout: the version alone is shown
     return {'version': version.group(1) if version else '', 'commit': commit, 'built': built}
+
+
+def build_help(target):
+    """help.json: the command reference the page's Help panel searches, from the same
+    table as the HELP command, grouped by category. The terminal's key list is left out,
+    and the colours topic names the page's Colours menu instead of a command-line option."""
+    sys.path.insert(0, str(ROOT))
+    from termlogo import helptext
+
+    on_the_page = {'colours': 'the Colours menu: UCBLogo or Terrapin'}
+    groups = []
+    for category in helptext.CATEGORIES:
+        entries = [
+            {'name': name, 'usage': on_the_page.get(name, usage), 'about': about}
+            for name, (cat, usage, about) in helptext.ENTRIES.items()
+            if cat == category and name != 'keys'
+        ]
+        if entries:
+            groups.append({'category': category, 'entries': entries})
+    target.write_text(json.dumps(groups, indent=1), encoding='utf-8')
 
 
 def build_examples(target):
@@ -142,6 +163,7 @@ def main():
             shutil.copy(page, out / page.name)
     build_package(out / 'termlogo.zip')
     build_examples(out / 'examples.json')
+    build_help(out / 'help.json')
     stamp = stamp_files(out)
 
     bundled = args.bundle_pyodide or args.pyodide_dir is not None

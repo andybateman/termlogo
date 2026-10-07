@@ -76,6 +76,7 @@ async function init({ base, colourMode, width, height, shared }) {
   session = shared
     ? web.Session(post, width, height, colourMode, host)
     : web.Session(post, width, height, colourMode);
+  session.refresh(); // the empty canvas, with the turtle at home
   post('ready', pyodide.runPython('import termlogo; termlogo.__version__'), Boolean(shared));
 }
 
@@ -87,6 +88,10 @@ self.onmessage = async ({ data }) => {
       session.reset(data.colourMode);
       post('reset');
     } else if (data.type === 'export') session.export(data.kind);
+    else if (data.type === 'resize') {
+      session.resize(data.width, data.height);
+      post('resized');
+    }
   } catch (error) {
     post('crash', String(error && error.message ? error.message : error));
   }
