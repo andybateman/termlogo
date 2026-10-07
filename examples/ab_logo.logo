@@ -1,31 +1,39 @@
-; AB monogram: a bold A and B, drawn with a thick round pen.
-to jump :x :y
-  pu setxy :x :y pd
+; The AB monogram. An "a" and a "b" that are the same shape turned half way
+; round: a ring with a gap, and a stem that drops (a) or rises (b) from it.
+; Measurements are the logo's own, on a 100 x 100 grid, times :k.
+make "k 2.4
+make "ro 24.57 * :k           ; outer radius of the ring (and the stem's length)
+make "ri 15.18 * :k           ; inner radius
+make "cutx 13.96 * :k         ; where the ring ends, just short of the stem
+
+; A point on the letter. :s is 1 for the "a" and -1 for the "b".
+to pt :cx :s :dx :dy
+  setxy :cx + :s * :dx :s * :dy
 end
 
-to half :r
-  ; a half circle of radius :r, turning right, ending 2r below where it began
-  repeat 18 [fd 3.14159 * :r / 18 rt 10]
+; An arc of the ring at radius :r from angle :a0 to :a1, in degrees.
+to arcpts :cx :s :r :a0 :a1
+  for [i 0 72] [
+    make "t :a0 + (:a1 - :a0) * :i / 72
+    pt :cx :s :r * cos :t :r * sin :t
+  ]
 end
 
-to letter.a
-  setpc 14
-  jump -66 -40 seth 20
-  fd 86 rt 140 fd 86     ; the two legs
-  jump -52 -8 seth 90
-  fd 31                  ; the crossbar
+to piece :cx :s
+  localmake "outerend 360 - arccos (:cutx / :ro)
+  localmake "innerend 360 - arccos (:cutx / :ri)
+  pu
+  pt :cx :s :ri 0                      ; start at the top of the stem, inner edge
+  filled 0 [
+    pt :cx :s :ri (0 - :ro)            ; down the stem
+    pt :cx :s :ro (0 - :ro)
+    pt :cx :s :ro 0
+    arcpts :cx :s :ro 0 :outerend      ; round the outside
+    arcpts :cx :s :ri :innerend 0      ; and back round the inside
+  ]
 end
 
-to letter.b
-  setpc 1
-  jump 24 -40 seth 0
-  fd 80 rt 90 fd 20      ; stem and top
-  half 20
-  fd 20 rt 180 fd 20     ; middle bar
-  half 20
-  fd 20                  ; bottom
-end
-
-cs ht setpensize 7
-letter.a
-letter.b
+fitwindow 290            ; so the whole logo fits whatever the window size
+cs ht setbg 7 setpc 0
+piece (0 - 25.43 * :k) 1
+piece 25.43 * :k (0 - 1)
