@@ -2,6 +2,8 @@
 to star :n
   repeat 5 [fd :n rt 144]
 end
+fitwindow 120 ; fit a 120-step window to the canvas
+cs
 foreach [1 2 4 5 6 9 12 14] [
   setpc ?
   pu setxy (-50 + 12 * repcount) (10 * sin 40 * repcount) pd

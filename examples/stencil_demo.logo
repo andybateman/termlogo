@@ -13,6 +13,7 @@ to letter.k
   pu setxy 40 20 pd setheading 135 fd 28
 end
 to star :s repeat 5 [fd :s rt 144] end
+fitwindow 160 ; fit the view (the stencil keeps 1 step = 1 mm)
 cs setpensize 3 setpc 7
 letter.o letter.k
 setpensize 1.6

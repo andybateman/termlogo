@@ -9,4 +9,5 @@ end
 to snowflake :len :depth
   repeat 3 [koch :len :depth rt 120]
 end
-cs pu setxy -30 15 pd setpc 3 snowflake 60 3
+fitwindow 90 ; fit a 90-step window to the canvas
+cs pu setxy -17.5 -30 pd setpc 3 snowflake 60 3

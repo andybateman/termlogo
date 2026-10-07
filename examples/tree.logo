@@ -7,4 +7,5 @@ to tree :size
   lt 25
   bk :size
 end
-cs pu bk 30 pd setpc 2 tree 28
+fitwindow 100 ; fit a 100-step window to the canvas
+cs pu bk 41 pd setpc 2 tree 28

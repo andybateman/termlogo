@@ -4,6 +4,7 @@
 ; inside the window is left as an island and is bridged automatically.
 ; FILLED cuts out the shape the turtle traces, with the pen up or down.
 
+fitwindow 160 ; fit the view (the stencil keeps 1 step = 1 mm)
 cs setpensize 2
 repeat 4 [fd 30 rt 90]
 pu setxy 10 10 pd repeat 4 [fd 10 rt 90]

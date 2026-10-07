@@ -1,7 +1,8 @@
-; Tail-recursive spiral that stops at the edge of the screen
+; Tail-recursive spiral that stops once its side passes 35 steps
 to spiral :s
   if :s > 35 [stop]
   fd :s rt 91
   spiral :s + 1
 end
+fitwindow 70 ; fit a 70-step window to the canvas
 cs setpc 6 spiral 1
