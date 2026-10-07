@@ -75,6 +75,6 @@ cd ~/Documents/Quests/Projects/20261006_Terminal_Logo_Turtle
 ./bin/termlogo examples/stencil_fill.logo -o fill.stl # stencil with cut-outs
 ```
 - If `.venv` is missing: `python3 -m venv .venv && .venv/bin/python -m pip install -r requirements-dev.txt`.
-- Commit each change separately, with no `Co-Authored-By` trailer.
+- Commit each change separately.
 - Before pushing, check `gh auth status` shows the personal account, then push with `git -c credential.helper= -c credential.helper='!gh auth git-credential' push` until question 1 is settled.
 - After a change: update `README.md` and `CHANGELOG.md` (`/wrapup`), and this file if an open item is finished or added.
