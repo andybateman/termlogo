@@ -12,6 +12,17 @@ UNSET = object()
 MAX_DEPTH = 25000
 
 
+def python_frame_limit(version=sys.version_info):
+    """How deep Python may recurse while running Logo. Python 3.12 and later watch the C
+    stack themselves and raise RecursionError in time, so deep Logo recursion ends in
+    'Stack overflow'. Older versions crash outright when the C stack runs out, which on an
+    8 MB stack happened beyond about 8,700 frames on 3.10 and 260,000 on 3.11 (measured
+    2026-10-07, recursion through REPEAT, RUN, CATCH and MAP included), so stay well inside."""
+    if version >= (3, 12):
+        return 400000
+    return 150000 if version >= (3, 11) else 5000
+
+
 class Procedure:
     def __init__(self, name, params, body, defaults=None, rest=None, min_args=None):
         self.name, self.params, self.body = name, params, body
@@ -75,7 +86,7 @@ class Interp:
         # Terminal front ends fill these in; the defaults suit plain stdin/stdout.
         self.readchar = self.keyp = None
         self.cursor_get = self.cursor_set = self.text_clear = None
-        sys.setrecursionlimit(max(sys.getrecursionlimit(), 400000))
+        sys.setrecursionlimit(max(sys.getrecursionlimit(), python_frame_limit()))
 
     # ---- variables -------------------------------------------------------
     def lookup(self, name):

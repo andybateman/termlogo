@@ -3,6 +3,8 @@ import os
 import sys
 import tempfile
 import unittest
+from contextlib import nullcontext
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
@@ -233,7 +235,39 @@ greet "hello
         self.assertEqual(out('catch "error [print 1/0] print "after'), 'after\n')
 
     def test_deep_recursion(self):
-        run('to d :n if :n = 0 [output 0] output 1 + d :n - 1 end print d 1500')
+        depth = 1500 if sys.version_info >= (3, 11) else 300  # 3.10 stops sooner; see interp
+        self.assertEqual(
+            out(f'to d :n if :n = 0 [output 0] output 1 + d :n - 1 end print d {depth}'),
+            f'{depth}\n',
+        )
+
+    def test_runaway_recursion_through_any_command_is_a_stack_overflow_not_a_crash(self):
+        # Before Python 3.12 these crashed the interpreter outright (C stack exhausted), so
+        # there they run to the full depth. Newer versions cannot crash, so a lower Logo
+        # depth limit keeps the test quick.
+        quick = (
+            patch('termlogo.interp.MAX_DEPTH', 3000)
+            if sys.version_info >= (3, 12)
+            else nullcontext()
+        )
+        for body in (
+            'output 1 + r :n + 1',
+            'repeat 1 [r :n + 1]',
+            'run [r :n + 1]',
+            'catch "x [r :n + 1]',
+            'foreach [1] [r :n + 1]',
+            'output first map [r :n + 1] [1]',
+        ):
+            with self.subTest(body=body), quick, self.assertRaises(LogoError) as caught:
+                run(f'to r :n {body} end print r 1')
+            self.assertEqual(caught.exception.message, 'Stack overflow')
+
+    def test_python_frame_limit_follows_the_python_version(self):
+        from termlogo.interp import python_frame_limit
+
+        self.assertEqual(python_frame_limit((3, 10, 20)), 5000)
+        self.assertEqual(python_frame_limit((3, 11, 0)), 150000)
+        self.assertEqual(python_frame_limit((3, 13, 1)), 400000)
 
     def test_runaway_recursion_is_an_error(self):
         with self.assertRaises(LogoError):

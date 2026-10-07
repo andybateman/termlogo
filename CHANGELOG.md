@@ -1,5 +1,9 @@
 # Changelog - Terminal Logo Turtle
 
+## [2026-10-08] - Fix: deep recursion crashed Python 3.10 and 3.11
+- Runaway or very deep recursion could crash the whole interpreter (segmentation fault) instead of reporting `Stack overflow`: on Python 3.10 beyond about 600 levels of ordinary recursion, and on 3.11 when the recursion went through `REPEAT`, `RUN`, `CATCH` or `FOREACH`. The interpreter raised Python's recursion limit to 400,000, which only Python 3.12 and later can survive (they check the C stack themselves). The limit now follows the Python version (`interp.python_frame_limit`): 400,000 from 3.12, 150,000 on 3.11 and 5,000 on 3.10, each well inside the measured crash point on an 8 MB stack. On 3.10 that means `Stack overflow` after a few hundred levels of non-tail recursion; tail calls are unaffected
+- Validation (as at 2026-10-08): the full suite (329 tests) passes on Python 3.10.20, 3.11.17, 3.12.3 and 3.13.16; it had never been run on 3.10 before. A new test drives runaway recursion through six different commands and expects `Stack overflow`
+
 ## [2026-10-07] - Browser version: no stale files after an update
 - A browser that had visited before could run an old `termlogo.zip` (the Python engine) against a new page, because GitHub Pages lets files be kept for ten minutes. Every file the page loads (`app.js`, `worker.js`, `style.css`, `termlogo.zip`, `examples.json`) is now requested as `name?v=STAMP`, where STAMP is a hash of the built contents (also in `config.json` as `build`, which is always fetched fresh). A changed build can no longer be paired with old files; the one thing left is the page's own `index.html`, which a browser may keep for up to ten minutes
 - Tests: the stamp is in every reference, and changes when the content does

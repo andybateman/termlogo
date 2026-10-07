@@ -133,7 +133,7 @@ Rendered with `./bin/termlogo examples/NAME.logo --speed 0 -o docs/images/NAME.p
 - **Keys:** `READCHAR READCHARS KEYP`. In the REPL they take keys straight from the keyboard while a program runs (Enter gives a newline; Escape or Ctrl-C stops the program). Piped input is read a character at a time.
 - **Text cursor:** `CURSOR`, `SETCURSOR [column row]`, `CLEARTEXT`. The REPL's text area under the canvas is five rows by the terminal's width, so `SETCURSOR` places text within those (counting from 0) and `PRINT` or `TYPE` then overwrite what is there. It lasts for one command; outside the REPL it is accepted and does nothing.
 - **Jumps:** `GOTO "tag` and `TAG "tag` inside a procedure (also from within `IF`, `REPEAT` and other lists), and `.MAYBEOUTPUT`, which outputs its input if it made one and otherwise behaves like `STOP`.
-- **Tail calls:** a final call in a procedure (also inside a final `IF`/`IFELSE`, or `OUTPUT proc ...`) runs as a loop, so `to loop ... loop end` runs indefinitely in constant memory. Escape or Ctrl-C stops it in the terminal. Other recursion is capped at 25,000 levels and then reports "Stack overflow".
+- **Tail calls:** a final call in a procedure (also inside a final `IF`/`IFELSE`, or `OUTPUT proc ...`) runs as a loop, so `to loop ... loop end` runs indefinitely in constant memory. Escape or Ctrl-C stops it in the terminal. Other recursion is capped at 25,000 levels and then reports "Stack overflow" (Python 3.10 stops sooner, after a few hundred levels, because deeper recursion would crash it; 3.11 or later is better).
 - **Extensions:** `SETSCALE n` (same as `--scale`), `FITWINDOW n` (same as `--fit`), `SETSPEED`/`SPEED`, `STENCIL`, `SAVEPICT "file.svg|png|txt|stl`, `HELP`, `VERSION`.
 
 ## Browser version
