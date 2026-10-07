@@ -11,6 +11,8 @@
 ## Overview
 A Logo interpreter with turtle graphics that runs entirely in the terminal. Python's built-in `turtle` needs a Tk window and PythonTurtle needs wxPython, so neither works over SSH or in a plain terminal. This one draws with Unicode Braille characters (2x4 dots per cell) in 24-bit colour, uses only the Python standard library (Python 3.10 or later), and follows UCBLogo behaviour by default. A selectable Terrapin colour mode supports its colour tutorial without changing existing programs.
 
+**Try it in your browser, with nothing to install: <https://www.andybateman.com/termlogo/>** (see [Browser version](#browser-version)).
+
 ## Usage
 ```bash
 ./bin/termlogo                      # interactive REPL (canvas above, text log below)

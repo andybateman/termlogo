@@ -2,6 +2,8 @@
 
 A Logo interpreter with turtle graphics that runs entirely in the terminal, so it works over SSH and in any plain terminal window. It follows UCBLogo, uses only the Python standard library, and can turn a drawing into a 3D-printable stencil.
 
+**[Try it in your browser](https://www.andybateman.com/termlogo/)**, with nothing to install, or run it in your terminal as below.
+
 ![A flower drawn in the terminal](../docs/images/flower.png)
 
 ## Get started
@@ -30,7 +32,7 @@ Useful options: `--speed 0` draws instantly, `--render braille|half|kitty` picks
 
 ## Find out more
 - [README.md](../README.md): full user guide, key bindings, colour modes, stencils, what works and known issues
-- Try it in a browser: build it with `python3 tools/build_web.py` (see the README's Browser version section)
+- [Run it in your browser](https://www.andybateman.com/termlogo/): the same engine through Pyodide, with an editor, examples and PNG/SVG/STL downloads (how it is built is in the README's Browser version section)
 - [examples/](../examples): sample programs to run and change
 - [CHANGELOG.md](../CHANGELOG.md): what changed in each version
 - [HANDOVER.md](../HANDOVER.md): open items and how to pick the project up

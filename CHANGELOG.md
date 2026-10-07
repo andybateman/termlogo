@@ -1,5 +1,8 @@
 # Changelog - Terminal Logo Turtle
 
+## [2026-10-07] - Link to the live browser version
+- The README and the GitHub front page (`.github/README.md`) now link to the live browser version at https://www.andybateman.com/termlogo/, near the top. The repository's website field is a GitHub setting, not a file: `gh repo edit andybateman/termlogo --homepage https://www.andybateman.com/termlogo/`
+
 ## [2026-10-07] - Browser version hosted on andybateman.com
 - The browser version is published as static files at `/termlogo/` in the `andybateman/andybateman.github.io` repository (live at https://www.andybateman.com/termlogo/). `python3 tools/build_web.py --out ../andybateman.github.io/termlogo` updates it; `build_web.py` now refuses to replace a folder it did not make (one without its `config.json`) unless it is empty, so a mistyped `--out` cannot delete anything. The page has an SVG favicon (`web/favicon.svg`) in place of the empty one, which the site's html-proofer Favicon check wanted
 - Checked by building the site with its own Jekyll configuration in production mode (builds cleanly, html-proofer passes all five README checks) and by running the 22 browser checks against `/termlogo/` served from the built site, with Pyodide from a local server standing in for the CDN. The real CDN download was checked separately on macOS (the entry below); the deployed copy at andybateman.com has not been opened yet
