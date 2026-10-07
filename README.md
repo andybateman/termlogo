@@ -25,6 +25,13 @@ A Logo interpreter with turtle graphics that runs entirely in the terminal. Pyth
 ./bin/termlogo prog.logo --fit 1000  # textbook programs: a 1000x1000 window fits the canvas
 python3 -m unittest discover -s tests
 ```
+**Homebrew:** the formula lives in this repository, so tap it by URL and install:
+```bash
+brew tap andybateman/termlogo https://github.com/andybateman/termlogo
+brew install termlogo
+```
+It installs the source with Homebrew's Python 3.13 and a `termlogo` launcher. Each release needs `Formula/termlogo.rb` updated with the new tag URL and `sha256` (`curl -sL <tarball URL> | shasum -a 256`).
+
 **Single file:** `tools/build_pyz.sh` writes `dist/termlogo.pyz`, one 220 KB executable that runs anywhere Python 3.10 or later is installed, with no source tree or install: `./termlogo.pyz examples/flower.logo`, or copy it onto your `PATH` as `termlogo`. Release pages carry a prebuilt copy (attach it with `gh release upload vX.Y.Z dist/termlogo.pyz`). It still needs Python; it is not a standalone binary.
 
 Options: `--render`, `--speed 0-10` (default 5; 0 draws instantly), `--colour-mode`/`--color-mode ucblogo|terrapin` (default `ucblogo`), `--stencil-opt KEY=VALUE`, `--size COLSxROWS`, `--scale S` (pixels per turtle step, default 1; use 0.5 for drawings built for a 400x400 screen), `--fit N` (scale so an N x N Logo window fits the canvas; see below), `--no-color`/`--no-colour`, `--no-canvas`. REPL: Tab completes names, history is kept in `~/.termlogo_history`, `BYE` or Ctrl-D leaves.
@@ -152,6 +159,7 @@ Rendered with `./bin/termlogo examples/NAME.logo --speed 0 -o docs/images/NAME.p
 | `termlogo/repl.py`, `__main__.py` | REPL, Tab completion, paging, command line |
 | `termlogo/values.py`, `errors.py`, `registry.py` | Logo data helpers, error and control-flow exceptions, the primitive registry |
 | `bin/termlogo` | Launcher that runs from this folder without installing |
+| `Formula/termlogo.rb` | Homebrew formula (tap this repository by URL) |
 | `tools/build_pyz.sh` | Builds the single-file `dist/termlogo.pyz` (git-ignored) |
 | `examples/` | `flower`, `tree`, `koch`, `spiral`, `stars`, `stencil_demo`, `stencil_fill` |
 | `tests/test_logo.py` | Unit tests |

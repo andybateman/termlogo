@@ -1,5 +1,8 @@
 # Changelog - Terminal Logo Turtle
 
+## [2026-10-07] - Homebrew formula
+- Added `Formula/termlogo.rb` so the repository can be tapped by URL (`brew tap andybateman/termlogo https://github.com/andybateman/termlogo`, then `brew install termlogo`). It installs the v1.0.0 source with Homebrew's Python 3.13. The formula and its checksum were prepared without a Mac and have not yet been run through `brew install` or `brew test`
+
 ## [2026-10-07] - Public repository and MIT licence
 - Added the MIT `LICENSE` and a Licence section in the README, and changed the repository to public so the release can be downloaded and installed through a Homebrew tap. HANDOVER.md and the README no longer call it private. History above that mentions the private repository is left as it was written
 

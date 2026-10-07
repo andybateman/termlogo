@@ -16,6 +16,13 @@ cd termlogo
 ./bin/termlogo prog.logo -o out.png  # export .svg, .png, .txt or .stl
 ```
 
+On macOS or Linux with Homebrew:
+
+```bash
+brew tap andybateman/termlogo https://github.com/andybateman/termlogo
+brew install termlogo
+```
+
 In the REPL, type `HELP` for every command, `HELP fd` for one, and `BYE` to leave. Press Tab to complete names, Up to recall a command, and Escape to stop a running program.
 
 Useful options: `--speed 0` draws instantly, `--render braille|half|kitty` picks the renderer, `--colour-mode terrapin` switches to Terrapin colours, and `--fit 1000` fits a textbook 1000x1000 window to the canvas.
