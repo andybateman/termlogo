@@ -1,0 +1,25 @@
+# Add the termlogo.pyz instructions to the v1.0.0 release.
+# Run from your termlogo folder, after: gh release upload v1.0.0 dist/termlogo.pyz
+
+{ gh release view v1.0.0 --json body --jq .body; cat <<'NOTES'
+
+## Single-file download: `termlogo.pyz`
+One executable file that runs wherever Python 3.10 or later is installed. There is nothing else to install.
+
+```bash
+# download termlogo.pyz from the Assets list below, then:
+chmod +x termlogo.pyz
+./termlogo.pyz                       # interactive REPL
+./termlogo.pyz program.logo          # run a Logo program
+./termlogo.pyz -e 'repeat 36 [fd 30 rt 100]'
+./termlogo.pyz program.logo -o out.png   # export .svg, .png, .txt or .stl
+
+# optional: put it on your PATH as `termlogo`
+mkdir -p ~/bin && mv termlogo.pyz ~/bin/termlogo
+```
+
+- If you have no `python3` on your PATH, run it as `python3.11 termlogo.pyz` (any version 3.10+).
+- On macOS, a downloaded file may be quarantined. If it will not run, use `xattr -d com.apple.quarantine termlogo.pyz`.
+- It is a Python archive, not a compiled binary. Type `HELP` in the REPL for every command, or see the [README](https://github.com/andybateman/termlogo#readme).
+NOTES
+} > /tmp/notes.md && gh release edit v1.0.0 --notes-file /tmp/notes.md
