@@ -62,7 +62,7 @@ async function init({ base, colourMode, width, height, shared }) {
   const { loadPyodide } = await import(base + 'pyodide.mjs');
   pyodide = await loadPyodide({ indexURL: base });
   post('status', 'Loading termlogo…');
-  const response = await fetch(new URL('termlogo.zip', self.location));
+  const response = await fetch(new URL('termlogo.zip?v=__BUILD__', self.location));
   if (!response.ok) throw new Error('termlogo.zip: HTTP ' + response.status);
   pyodide.unpackArchive(await response.arrayBuffer(), 'zip', { extractDir: '/termlogo_pkg' });
   pyodide.runPython("import sys; sys.path.insert(0, '/termlogo_pkg')");

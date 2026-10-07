@@ -1,5 +1,9 @@
 # Changelog - Terminal Logo Turtle
 
+## [2026-10-07] - Browser version: no stale files after an update
+- A browser that had visited before could run an old `termlogo.zip` (the Python engine) against a new page, because GitHub Pages lets files be kept for ten minutes. Every file the page loads (`app.js`, `worker.js`, `style.css`, `termlogo.zip`, `examples.json`) is now requested as `name?v=STAMP`, where STAMP is a hash of the built contents (also in `config.json` as `build`, which is always fetched fresh). A changed build can no longer be paired with old files; the one thing left is the page's own `index.html`, which a browser may keep for up to ten minutes
+- Tests: the stamp is in every reference, and changes when the content does
+
 ## [2026-10-07] - Browser version shows its version; one-command publishing
 - The page now shows the version, commit and date it was built from under its title (for example `v1.1.0 · 4391b23 · 2026-10-07`, with `+changes` if the working tree differed from the commit), and `config.json` carries the same, so a stale live copy is easy to spot
 - `tools/publish_site.sh` builds into the `andybateman.github.io` checkout, commits and pushes (`--no-push` stops before the push; it refuses a site checkout with other uncommitted changes). The build is now reproducible: the package zip uses fixed file dates and the stamp uses the commit's own date, so the same commit gives the same bytes and publishing twice commits nothing

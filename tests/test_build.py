@@ -73,6 +73,37 @@ class WebBuildTests(unittest.TestCase):
             ):
                 self.assertTrue((out / name).is_file(), name)
 
+    def test_every_file_the_page_loads_is_requested_with_a_content_stamp(self):
+        with tempfile.TemporaryDirectory() as work:
+            out = Path(work) / 'site'
+            self.assertEqual(self.build(out).returncode, 0)
+            stamp = json.loads((out / 'config.json').read_text())['build']
+            self.assertRegex(stamp, r'^[0-9a-f]{10}$')
+            for name, needle in (
+                ('index.html', f'app.js?v={stamp}'),
+                ('index.html', f'style.css?v={stamp}'),
+                ('app.js', f'worker.js?v={stamp}'),
+                ('app.js', f'examples.json?v={stamp}'),
+                ('worker.js', f'termlogo.zip?v={stamp}'),
+            ):
+                self.assertIn(needle, (out / name).read_text(), f'{name}: {needle}')
+            for name in ('index.html', 'app.js', 'worker.js'):
+                self.assertNotIn('__BUILD__', (out / name).read_text())
+
+    def test_the_stamp_changes_when_the_content_does(self):
+        with tempfile.TemporaryDirectory() as work:
+            first = Path(work) / 'a'
+            self.assertEqual(self.build(first).returncode, 0)
+            stamp = json.loads((first / 'config.json').read_text())['build']
+            example = ROOT / 'examples' / 'zz_stamp_test.logo'
+            example.write_text('print 1\n')
+            try:
+                second = Path(work) / 'b'
+                self.assertEqual(self.build(second).returncode, 0)
+            finally:
+                example.unlink()
+            self.assertNotEqual(json.loads((second / 'config.json').read_text())['build'], stamp)
+
     def test_building_twice_gives_identical_files(self):
         with tempfile.TemporaryDirectory() as work:
             first, second = Path(work) / 'a', Path(work) / 'b'

@@ -148,7 +148,7 @@ Open it through a web server, not by double-clicking `index.html` (the page load
 ```bash
 tools/publish_site.sh
 ```
-The page shows the version, commit and date it was built from under its title, and `https://www.andybateman.com/termlogo/config.json` holds the same, so you can tell at a glance whether the live copy is behind this repository. The build is reproducible: the same commit gives the same files, so publishing twice changes nothing.
+The page shows the version, commit and date it was built from under its title, and `https://www.andybateman.com/termlogo/config.json` holds the same, so you can tell at a glance whether the live copy is behind this repository. The build is reproducible: the same commit gives the same files, so publishing twice changes nothing. GitHub Pages lets browsers keep files for ten minutes, so every file the page loads is requested as `name?v=STAMP` (a hash of the contents). After a publish, a browser that already has the old `index.html` can show the old page for up to ten minutes (a hard refresh, Cmd+Shift+R, skips the wait); everything else it loads is then fresh.
 
 **What it does:**
 - Pictures are sent as the rows that changed, and the turtle and `LABEL` text are drawn by the page, so animation keeps up with the set speed.

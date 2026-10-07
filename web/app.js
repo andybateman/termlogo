@@ -231,7 +231,7 @@ async function startWorker() {
   const isolation = await setUpSharedMemory();
   if (isolation === 'reloading') return;
   const base = await pyodideBase(await loadConfig());
-  worker = new Worker(new URL('worker.js', import.meta.url), { type: 'module' });
+  worker = new Worker(new URL('worker.js?v=__BUILD__', import.meta.url), { type: 'module' });
   worker.onmessage = ({ data }) => handle(data.kind, data.args);
   worker.onerror = (event) => {
     if (retryWithoutSharedMemory()) return;
@@ -454,7 +454,7 @@ async function loadShared() {
 // ---- examples ------------------------------------------------------------------
 async function loadExamples() {
   try {
-    const response = await fetch('examples.json');
+    const response = await fetch('examples.json?v=__BUILD__');
     const examples = await response.json();
     const select = $('examples');
     for (const { name, code } of examples) select.add(new Option(name, code));

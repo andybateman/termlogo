@@ -11,6 +11,7 @@ index.html from disk will not work.
 """
 
 import argparse
+import hashlib
 import json
 import re
 import shutil
@@ -43,6 +44,31 @@ def build_package(target):
                 info.compress_type = zipfile.ZIP_DEFLATED
                 info.external_attr = 0o644 << 16
                 archive.writestr(info, path.read_bytes())
+
+
+def stamp_files(out):
+    """GitHub Pages lets browsers keep files for ten minutes, which would pair a new page with
+    an old package. Every file the page loads is therefore requested as `name?v=STAMP`, where
+    STAMP is a hash of the contents, so any change is fetched fresh. Returns the stamp."""
+    names = (
+        'index.html',
+        'app.js',
+        'worker.js',
+        'style.css',
+        'coi-sw.js',
+        'termlogo.zip',
+        'examples.json',
+    )
+    digest = hashlib.sha256()
+    for name in names:
+        digest.update((out / name).read_bytes())
+    stamp = digest.hexdigest()[:10]
+    for name in ('index.html', 'app.js', 'worker.js'):
+        path = out / name
+        path.write_text(
+            path.read_text(encoding='utf-8').replace('__BUILD__', stamp), encoding='utf-8'
+        )
+    return stamp
 
 
 def build_info():
@@ -113,6 +139,7 @@ def main():
             shutil.copy(page, out / page.name)
     build_package(out / 'termlogo.zip')
     build_examples(out / 'examples.json')
+    stamp = stamp_files(out)
 
     bundled = args.bundle_pyodide or args.pyodide_dir is not None
     if bundled:
@@ -125,7 +152,7 @@ def main():
                         f'{source / name} is missing; is this a Pyodide {PYODIDE_VERSION} folder?'
                     )
                 shutil.copy(source / name, out / 'pyodide' / name)
-    config = {'pyodideVersion': PYODIDE_VERSION, 'bundled': bundled, **build_info()}
+    config = {'pyodideVersion': PYODIDE_VERSION, 'bundled': bundled, **build_info(), 'build': stamp}
     (out / 'config.json').write_text(json.dumps(config), encoding='utf-8')
     total = sum(f.stat().st_size for f in out.rglob('*') if f.is_file())
     print(f'Built {out} ({total / 1e6:.1f} MB). Serve it: python3 -m http.server -d {out}')
