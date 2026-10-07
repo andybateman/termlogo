@@ -1,5 +1,8 @@
 # Changelog - Terminal Logo Turtle
 
+## [2026-10-07] - v1.1.0
+- Released the browser version (live at https://www.andybateman.com/termlogo/) with its smoother animation, `LABEL` text in downloads, share links, typing into running programs and interruptible Stop, plus the Homebrew formula, the single-file `termlogo.pyz`, the redrawn AB monogram example and the MIT licence. The CLI, startup banner, `VERSION` reporter and README now use version 1.1.0. Added `tools/update_formula.sh VERSION`, which points the Homebrew formula at a release once its tag exists
+
 ## [2026-10-07] - Browser version: smoother animation, labels in downloads, share links, typing and Stop
 - **Animation:** the engine now sends only the rows of the picture that changed (as RGBA bytes) instead of a whole PNG, and the page draws the turtle and `LABEL` text itself. `Canvas` tracks the changed rows (`take_dirty_rows`, `mark_all_dirty`) and can produce them (`rgba_rows`). A speed-8 circle that took about 1.4 seconds now takes about 0.5, and a speed-5 square runs at the set pace
 - **Exports:** PNG downloads are made by the page from the drawing plus `LABEL` text, without the turtle marker; SVG downloads now include `LABEL` text as `<text>` elements
