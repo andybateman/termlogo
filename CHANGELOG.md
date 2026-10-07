@@ -1,5 +1,10 @@
 # Changelog - Terminal Logo Turtle
 
+## [2026-10-07] - Browser version: Pyodide from the CDN
+- The browser version now loads Pyodide 314.0.7 from the jsDelivr CDN (`https://cdn.jsdelivr.net/npm/pyodide@314.0.7/`) by default, so the built site is about 0.1 MB instead of 14 MB. `build_web.py --bundle-pyodide` still copies Pyodide beside the page (the page reads `config.json` to know which), and `?pyodide=URL` overrides both. The Pages workflow no longer needs npm
+- Fixed: if Python failed to start (for example the CDN was blocked) the page said "Ready" with every button disabled. It now says "Could not start Python" and explains what to check
+- Checked in Chromium against a local server on another origin with CORS headers, standing in for the CDN: all 22 smoke checks pass. The CDN itself could not be reached from the build environment, so the real jsDelivr download has not been tested
+
 ## [2026-10-07] - Browser version (first version)
 - Added a browser version of the engine: `web/` (page, editor, command line, canvas, example menu, speed and colour-mode controls, PNG/SVG/STL downloads) running the unchanged Python engine through Pyodide in a Web Worker. `termlogo/web.py` is the glue (a `Session` that runs Logo and posts text, pictures and files to the page), `Canvas.frame_png` gives it a picture with the turtle marker, and `tools/build_web.py` builds `dist/web` (page, package zip, examples, Pyodide 314.0.7 fetched with npm). `docs/pages-workflow.yml` is a GitHub Pages workflow to move into `.github/workflows/`
 - Known differences: keyboard input commands see an empty keyboard; Stop replaces the worker and so loses the workspace; `LABEL` text is not in PNG/SVG downloads; pictures travel as PNGs, which limits animation to roughly 10 frames a second

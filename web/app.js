@@ -2,7 +2,19 @@
 // worker.js; this file only sends it programs and draws what comes back.
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
-const PYODIDE_BASE = new URL(params.get('pyodide') || './pyodide/', location.href).href.replace(/\/?$/, '/');
+// Where Pyodide comes from: ?pyodide=URL, else the copy beside the page if the build bundled
+// one (see config.json), else the jsDelivr copy of the npm package.
+const DEFAULT_PYODIDE_VERSION = '314.0.7';
+async function pyodideBase() {
+  let config = {};
+  try {
+    config = await (await fetch('config.json')).json();
+  } catch { /* no config: use the defaults */ }
+  const version = config.pyodideVersion || DEFAULT_PYODIDE_VERSION;
+  const base = params.get('pyodide')
+    || (config.bundled ? './pyodide/' : `https://cdn.jsdelivr.net/npm/pyodide@${version}/`);
+  return new URL(base, location.href).href.replace(/\/?$/, '/');
+}
 const SIZE = { width: 800, height: 600 };
 const STORE_CODE = 'termlogo.code';
 const DEFAULT_CODE = `; Press Run, or Ctrl+Enter.
@@ -81,10 +93,11 @@ function showFrame(png, labels) {
 }
 
 // ---- the worker ------------------------------------------------------------
-function startWorker() {
+async function startWorker() {
   ready = running = false;
   refreshButtons();
   setStatus('Starting…');
+  const base = await pyodideBase();
   worker = new Worker(new URL('worker.js', import.meta.url), { type: 'module' });
   worker.onmessage = ({ data }) => handle(data.kind, data.args);
   worker.onerror = (event) => {
@@ -92,7 +105,7 @@ function startWorker() {
     say(`Could not start: ${event.message || 'the worker failed to load'}\n`, 'err');
   };
   worker.postMessage({
-    type: 'init', base: PYODIDE_BASE, colourMode: $('colours').value, ...SIZE,
+    type: 'init', base, colourMode: $('colours').value, ...SIZE,
   });
 }
 
@@ -117,7 +130,13 @@ function handle(kind, args) {
     refreshButtons();
   } else if (kind === 'file') download(args[0], args[1], args[2], args[3]);
   else if (kind === 'file-error') say(args[0] + '\n', 'err');
-  else if (kind === 'crash') {
+  else if (kind === 'crash' && !ready) {
+    // Python never started: most often Pyodide could not be downloaded.
+    say(`Could not start Python: ${args[0]}\n`, 'err');
+    say('Check your connection, or whether cdn.jsdelivr.net is blocked on this network. '
+      + 'A different copy of Pyodide can be used with ?pyodide=URL.\n', 'err');
+    setStatus('Could not start Python');
+  } else if (kind === 'crash') {
     running = false;
     say(`Internal error: ${args[0]}\n`, 'err');
     setStatus('Ready');

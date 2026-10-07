@@ -137,10 +137,10 @@ Rendered with `./bin/termlogo examples/NAME.logo --speed 0 -o docs/images/NAME.p
 ## Browser version
 The same Python engine runs in a web page through [Pyodide](https://pyodide.org/) (Python compiled to WebAssembly), in a Web Worker so a long drawing never freezes the page. It has an editor, a command line with history, an example menu, a speed control, a UCBLogo/Terrapin colour switch, and PNG, SVG and STL stencil downloads. Nothing is sent to a server.
 ```bash
-python3 tools/build_web.py                 # builds dist/web, fetching Pyodide with npm
+python3 tools/build_web.py                 # builds dist/web (about 0.1 MB)
 python3 -m http.server -d dist/web         # then open http://localhost:8000
 ```
-Open it through a web server, not by double-clicking `index.html` (the page loads a module worker). The build is about 14 MB, mostly Pyodide itself, which the browser caches after the first visit; `?pyodide=https://...` loads Pyodide from another address instead. `docs/pages-workflow.yml` is a ready-made GitHub Pages workflow (it has to be moved to `.github/workflows/` by someone whose token may push workflows).
+Open it through a web server, not by double-clicking `index.html` (the page loads a module worker). Pyodide itself (about 12 MB) is loaded from the jsDelivr CDN on the first visit and cached by the browser after that. For a site that works offline or where the CDN is blocked, build with `--bundle-pyodide` (needs npm) to put a copy beside the page, or open the page with `?pyodide=https://...` to use another address. `docs/pages-workflow.yml` is a ready-made GitHub Pages workflow (it has to be moved to `.github/workflows/` by someone whose token may push workflows).
 
 This is a first version. Differences from the terminal:
 - `READWORD`, `READLIST`, `READCHAR` and `KEYP` see an empty keyboard, because a page cannot wait for typing inside a running program.
@@ -180,7 +180,7 @@ This is a first version. Differences from the terminal:
 | `bin/termlogo` | Launcher that runs from this folder without installing |
 | `Formula/termlogo.rb` | Homebrew formula (tap this repository by URL) |
 | `web/` | The browser page: `index.html`, `app.js` (editor, canvas, buttons), `worker.js` (Pyodide), `style.css` |
-| `tools/build_web.py` | Builds `dist/web`: the page, the package as `termlogo.zip`, examples and Pyodide |
+| `tools/build_web.py` | Builds `dist/web`: the page, the package as `termlogo.zip`, examples, and optionally a copy of Pyodide |
 | `tools/web_smoke.mjs` | Optional end-to-end check of the browser version |
 | `tools/build_pyz.sh` | Builds the single-file `dist/termlogo.pyz` (git-ignored) |
 | `examples/` | `flower`, `tree`, `koch`, `spiral`, `stars`, `stencil_demo`, `stencil_fill`, `ab_logo` |

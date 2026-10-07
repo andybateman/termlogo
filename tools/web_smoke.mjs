@@ -1,7 +1,7 @@
 // Browser smoke test for the web version. Not part of the unittest suite: it needs Node,
 // a Chromium and the playwright-core package.
 //
-//   python3 tools/build_web.py && (python3 -m http.server 8123 -d dist/web &)
+//   python3 tools/build_web.py [--bundle-pyodide] && (python3 -m http.server 8123 -d dist/web &)
 //   npm install playwright-core
 //   CHROME=/path/to/chromium node tools/web_smoke.mjs [http://localhost:8123/]
 //

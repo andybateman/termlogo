@@ -1,8 +1,10 @@
-"""Build the browser version into dist/web: the page, the termlogo package and Pyodide.
+"""Build the browser version into dist/web: the page and the termlogo package.
 
-    python3 tools/build_web.py                  # fetches Pyodide with `npm pack`
-    python3 tools/build_web.py --pyodide-dir D  # or copies it from a folder you already have
-    python3 -m http.server -d dist/web          # then open http://localhost:8000
+    python3 tools/build_web.py                          # small; Pyodide comes from the jsDelivr CDN
+    python3 tools/build_web.py --bundle-pyodide         # also copies Pyodide (via `npm pack`) so
+                                                        # the site works offline and without a CDN
+    python3 tools/build_web.py --pyodide-dir D          # bundle from a folder you already have
+    python3 -m http.server -d dist/web                  # then open http://localhost:8000
 
 The page needs a web server (it loads a module worker and fetches files), so opening
 index.html from disk will not work.
@@ -63,7 +65,12 @@ def main():
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter
     )
-    parser.add_argument('--pyodide-dir', type=Path, help='copy Pyodide from this folder, not npm')
+    parser.add_argument(
+        '--bundle-pyodide', action='store_true', help='copy Pyodide into the site (needs npm)'
+    )
+    parser.add_argument(
+        '--pyodide-dir', type=Path, help='bundle Pyodide from this folder instead of npm'
+    )
     parser.add_argument('--out', type=Path, default=ROOT / 'dist' / 'web')
     args = parser.parse_args()
 
@@ -77,13 +84,19 @@ def main():
     build_package(out / 'termlogo.zip')
     build_examples(out / 'examples.json')
 
-    with tempfile.TemporaryDirectory() as scratch:
-        source = args.pyodide_dir or fetch_pyodide(PYODIDE_VERSION, scratch)
-        (out / 'pyodide').mkdir()
-        for name in PYODIDE_FILES:
-            if not (source / name).is_file():
-                sys.exit(f'{source / name} is missing; is this a Pyodide {PYODIDE_VERSION} folder?')
-            shutil.copy(source / name, out / 'pyodide' / name)
+    bundled = args.bundle_pyodide or args.pyodide_dir is not None
+    if bundled:
+        with tempfile.TemporaryDirectory() as scratch:
+            source = args.pyodide_dir or fetch_pyodide(PYODIDE_VERSION, scratch)
+            (out / 'pyodide').mkdir()
+            for name in PYODIDE_FILES:
+                if not (source / name).is_file():
+                    sys.exit(
+                        f'{source / name} is missing; is this a Pyodide {PYODIDE_VERSION} folder?'
+                    )
+                shutil.copy(source / name, out / 'pyodide' / name)
+    config = {'pyodideVersion': PYODIDE_VERSION, 'bundled': bundled}
+    (out / 'config.json').write_text(json.dumps(config), encoding='utf-8')
     total = sum(f.stat().st_size for f in out.rglob('*') if f.is_file())
     print(f'Built {out} ({total / 1e6:.1f} MB). Serve it: python3 -m http.server -d {out}')
 

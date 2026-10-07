@@ -5,7 +5,7 @@ let session = null;
 const post = (kind, ...args) => self.postMessage({ kind, args });
 
 async function init({ base, colourMode, width, height }) {
-  post('status', 'Loading Python…');
+  post('status', 'Loading Python (about 12 MB the first time)…');
   const { loadPyodide } = await import(base + 'pyodide.mjs');
   const pyodide = await loadPyodide({ indexURL: base });
   post('status', 'Loading termlogo…');

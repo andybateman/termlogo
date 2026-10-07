@@ -31,7 +31,7 @@ jobs:
           python-version: '3.13'
       - name: Run the tests
         run: python -m unittest discover -s tests
-      - name: Build the site (fetches Pyodide with npm)
+      - name: Build the site (Pyodide is loaded from the jsDelivr CDN)
         run: python tools/build_web.py
       - uses: actions/upload-pages-artifact@v3
         with:
