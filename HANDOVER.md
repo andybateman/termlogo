@@ -61,7 +61,7 @@ From the review on 2026-10-07, in priority order. Items already in the table abo
 **Do next (small)**
 1. **Open the live page in Safari, Firefox and on a phone.** The page has only been checked in headless Chromium. Worth trying: dragging the divider with a trackpad, full screen (iPhone Safari cannot show one element full screen, so the button hides itself there), the one-time reload for the service worker, typing a line for `READWORD`, and runaway recursion (`to r :n output 1 + r :n + 1 end print r 1` should say `Stack overflow`; the 2,000-frame limit was measured in Chromium, and other browsers have different stack sizes).
 2. **Add continuous integration.** A GitHub Actions workflow that runs ruff and the unit tests on Python 3.10 to 3.13 for every push. Python 3.10 was first tested on 2026-10-07 and turned up a crash that this would have caught. Pushing a workflow needs a token with the `workflow` scope (as for `docs/pages-workflow.yml`).
-3. **Tidy up.** Remove `docs/release-pyz-instructions.txt`, a one-off that added notes to the v1.0.0 release and has been run. Settle outstanding question 1 with `gh auth setup-git`.
+3. **Settle the git credentials.** Run `gh auth setup-git` (outstanding question 1), so plain `git push` works on the Mac.
 
 **Worth doing (medium)**
 4. **Sharper pictures on high-DPI screens.** The page gives each canvas pixel one CSS pixel, so on a Retina screen lines look slightly soft. Either draw at `devicePixelRatio` (up to four times the pixels for Python to fill, so check the speed and `MAX_PIXELS`), or have the engine send line segments for the page to draw as vectors (`FILL` would still need pixels).
