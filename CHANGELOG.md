@@ -1,5 +1,9 @@
 # Changelog - Terminal Logo Turtle
 
+## [2026-10-07] - AB monogram example redrawn as an animation
+- Rewrote `examples/ab_logo.logo` in 21 lines without comments: white on black, each letter traced with `FD` and `LT` by a visible turtle and then filled with `FILLED`, after which the turtle turns and moves to the bottom-right corner. The outline is the same shape as before; `:k` is folded into the measurements. `docs/images/ab_logo.png` re-rendered to match
+- Validation (as at 2026-10-07): 314 unit tests passing. `tools/web_smoke.mjs` passed all 22 checks in headless Chrome on macOS against a fresh `dist/web`, with Pyodide loaded from the real jsDelivr CDN, which the earlier browser entries could not reach. The smoke test runs examples at speed 0, so the animation has not been watched in a browser or a real terminal
+
 ## [2026-10-07] - Browser version: Pyodide from the CDN
 - The browser version now loads Pyodide 314.0.7 from the jsDelivr CDN (`https://cdn.jsdelivr.net/npm/pyodide@314.0.7/`) by default, so the built site is about 0.1 MB instead of 14 MB. `build_web.py --bundle-pyodide` still copies Pyodide beside the page (the page reads `config.json` to know which), and `?pyodide=URL` overrides both. The Pages workflow no longer needs npm
 - Fixed: if Python failed to start (for example the CDN was blocked) the page said "Ready" with every button disabled. It now says "Could not start Python" and explains what to check
@@ -12,6 +16,7 @@
 
 ## [2026-10-07] - Homebrew formula
 - Added `Formula/termlogo.rb` so the repository can be tapped by URL (`brew tap andybateman/termlogo https://github.com/andybateman/termlogo`, then `brew install termlogo`). It installs the v1.0.0 source with Homebrew's Python 3.13. The formula installs and runs on macOS (checked by hand with `brew install` and `brew test`). Newer Homebrew refuses third-party taps until they are trusted, so the instructions include `brew trust --formula andybateman/termlogo/termlogo`
+
 
 ## [2026-10-07] - Public repository and MIT licence
 - Added the MIT `LICENSE` and a Licence section in the README, and changed the repository to public so the release can be downloaded and installed through a Homebrew tap. HANDOVER.md and the README no longer call it private. History above that mentions the private repository is left as it was written

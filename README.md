@@ -1,7 +1,7 @@
 # Terminal Logo Turtle
 
 <!-- Project metadata for the Quests project tools. GitHub does not show this block.
-**Keywords:** termlogo, Logo interpreter, turtle graphics, UCBLogo, Terrapin Logo, terminal REPL, multi-line command editing, command history, Braille graphics, Kitty graphics, Ghostty, 3D-printable stencil, STL, FILL and FILLED cut-outs, flood fill, SVG export, RGBA colours, tail recursion, animation, Python
+**Keywords:** termlogo, Logo interpreter, turtle graphics, UCBLogo, Terrapin Logo, terminal REPL, multi-line command editing, Braille graphics, Kitty graphics, Ghostty, 3D-printable stencil, STL, FILL and FILLED cut-outs, Pyodide browser version, Homebrew formula, SVG export, RGBA colours, tail recursion, animation, Python
 **Status:** Active (v1.0.0; as at 2026-10-07)
 **Start Date:** 2026-10-06
 **Last Updated:** 2026-10-07

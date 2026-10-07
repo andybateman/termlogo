@@ -1,39 +1,21 @@
-; The AB monogram. An "a" and a "b" that are the same shape turned half way
-; round: a ring with a gap, and a stem that drops (a) or rises (b) from it.
-; Measurements are the logo's own, on a 100 x 100 grid, times :k.
-make "k 2.4
-make "ro 24.57 * :k           ; outer radius of the ring (and the stem's length)
-make "ri 15.18 * :k           ; inner radius
-make "cutx 13.96 * :k         ; where the ring ends, just short of the stem
-
-; A point on the letter. :s is 1 for the "a" and -1 for the "b".
-to pt :cx :s :dx :dy
-  setxy :cx + :s * :dx :s * :dy
+make "o 58.968
+make "i 36.432
+make "u arccos 33.504 / :o
+make "v arccos 33.504 / :i
+to curve :r :d
+  localmake "c 2 * :r * sin :d
+  lt :d repeat 72 [fd :c lt :d + :d] rt :d
 end
-
-; An arc of the ring at radius :r from angle :a0 to :a1, in degrees.
-to arcpts :cx :s :r :a0 :a1
-  for [i 0 72] [
-    make "t :a0 + (:a1 - :a0) * :i / 72
-    pt :cx :s :r * cos :t :r * sin :t
+fitwindow 290
+cs st setbg 0 setpc 7
+repeat 2 [
+  pu setx 0 lt 90 fd 24.6 lt 90 pd
+  filled 7 [
+    fd :o lt 90 fd :o - :i lt 90 fd :o
+    curve :o (360 - :u) / 144
+    lt :u fd :o * (sin :u) - :i * sin :v lt 180 - :v
+    curve -:i (:v - 360) / 144
   ]
-end
-
-to piece :cx :s
-  localmake "outerend 360 - arccos (:cutx / :ro)
-  localmake "innerend 360 - arccos (:cutx / :ri)
-  pu
-  pt :cx :s :ri 0                      ; start at the top of the stem, inner edge
-  filled 0 [
-    pt :cx :s :ri (0 - :ro)            ; down the stem
-    pt :cx :s :ro (0 - :ro)
-    pt :cx :s :ro 0
-    arcpts :cx :s :ro 0 :outerend      ; round the outside
-    arcpts :cx :s :ri :innerend 0      ; and back round the inside
-  ]
-end
-
-fitwindow 290            ; so the whole logo fits whatever the window size
-cs ht setbg 7 setpc 0
-piece (0 - 25.43 * :k) 1
-piece 25.43 * :k (0 - 1)
+]
+make "p list 120 -:o
+pu seth towards :p setpos :p
