@@ -27,11 +27,9 @@ A Logo interpreter with turtle graphics that runs entirely in the terminal. Pyth
 ./bin/termlogo prog.logo --fit 1000  # textbook programs: a 1000x1000 window fits the canvas
 python3 -m unittest discover -s tests
 ```
-**Homebrew:** the formula lives in this repository, so tap it by URL and install:
+**Homebrew:** the formula lives in [andybateman/homebrew-tap](https://github.com/andybateman/homebrew-tap) (moved there 2026-11-02; the copy in `Formula/` here is the source it is bumped from):
 ```bash
-brew tap andybateman/termlogo https://github.com/andybateman/termlogo
-brew trust --formula andybateman/termlogo/termlogo   # newer Homebrew refuses untrusted taps
-brew install termlogo
+brew install andybateman/tap/termlogo
 ```
 It installs the source with Homebrew's Python 3.13 and a `termlogo` launcher. Each release needs `Formula/termlogo.rb` updated with the new tag URL and `sha256` (`curl -sL <tarball URL> | shasum -a 256`).
 
