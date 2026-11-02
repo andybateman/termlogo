@@ -1,5 +1,9 @@
 # Changelog - Terminal Logo Turtle
 
+## [2026-11-02] - Installs from andybateman/tap
+
+- The Homebrew formula now lives in `andybateman/homebrew-tap` as well, so one tap serves everything; `brew install andybateman/tap/termlogo`. The copy in `Formula/` here is the source it is bumped from. README install block updated. Formula bumps in the tap are manual on each release.
+
 ## [2026-10-07] - Removed a one-off release script
 - Removed `docs/release-pyz-instructions.txt`, which added the `termlogo.pyz` instructions to the v1.0.0 release notes and has been run. Release notes now live in `docs/release-notes-vX.Y.Z.md` and carry those instructions
 
