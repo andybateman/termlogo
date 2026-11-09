@@ -1,5 +1,9 @@
 # Changelog - Terminal Logo Turtle
 
+## [2026-11-10] - README cut to the minimum; the guide moved to .github/README.md
+
+- To cut tokens at every session start, `README.md` went from 30 KB to 1.3 KB (metadata comment, description, why, status, where things live). Every other section moved word for word into `.github/README.md`, which GitHub shows as the front page: usage, Terrapin colours, stencils, gallery, what works, browser version, not implemented, files table, licence, development checks and known issues. Image and file links were rewritten for the new folder; the old Next Steps line is now in the root README's Status. The pre-change README is kept in the session scratchpad only; git history has it too. `HANDOVER.md` updated to match.
+
 ## [2026-11-02] - Installs from andybateman/tap
 
 - The Homebrew formula now lives in `andybateman/homebrew-tap` as well, so one tap serves everything; `brew install andybateman/tap/termlogo`. The copy in `Formula/` here is the source it is bumped from. README install block updated. Formula bumps in the tap are manual on each release.

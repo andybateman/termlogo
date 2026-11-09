@@ -27,7 +27,7 @@ A Logo interpreter with turtle graphics that runs entirely in the terminal, usin
 | `--fit N` scales the drawing, not pen sizes | Pen size is in pixels. Scaling it would change stencil widths, which are in millimetres |
 | A Braille cell keeps showing its most common colour | A Braille character has one foreground colour; `half` and `kitty` give per-pixel colour |
 | Repository name `termlogo`, public under the MIT licence | Name chosen by Andy (2026-10-07); made public the same day so it can be installed with Homebrew |
-| One `README.md` for GitHub and the Quests project tools, with the `Keywords`, `Status` and date lines inside an HTML comment | GitHub hides comments; `projects.py`, the session hook and the skills still find the lines. Next steps live in this file, not the README |
+| A minimal `README.md` (about 1 KB: metadata comment, why, status, where things live) for the Quests project tools and session start, and the user guide in `.github/README.md` for GitHub (changed 2026-11-10, to cut session-start tokens) | GitHub shows `.github/README.md` in preference to the root file. `projects.py`, the session hook and the skills still find the metadata lines in the root README. Next steps live in this file |
 | The page's canvas follows the size of its pane at one pixel per turtle step (up to 1920x1200, stretched beyond), rather than a fixed 800x600 scaled to fit | A bigger window gives more room to draw, with crisp pixels. `FITWINDOW` gives textbook coordinates when a program wants them |
 | The examples start with `FITWINDOW` | They then fill any canvas, in the browser and the terminal. The stencil examples still export at 1 step = 1 mm |
 | In the browser, Python may recurse 2,000 frames | An exception unwinding through about 3,000 frames kills Pyodide (measured in Chromium), and Logo errors, `STOP`, `OUTPUT` and Stop are all exceptions |
@@ -78,7 +78,8 @@ From the review on 2026-10-07, in priority order. Items already in the table abo
 ## Key files
 | File | Why it matters |
 |---|---|
-| `README.md` | User guide, command-pane key table, stencil options, known issues |
+| `README.md` | Minimal: description, status, where things live (the Quests project tools read its metadata comment) |
+| `.github/README.md` | The GitHub front page and full user guide: usage, command-pane key table, stencil options, browser build, files table, known issues |
 | `CHANGELOG.md` | What changed and how it was validated, newest first |
 | `termlogo/repl.py` | Command pane and editor (`DrawingControls.readline`), display, history |
 | `termlogo/stencil.py` | Stencil engine: strokes, fill cut-outs, bridging, mesh, STL |
