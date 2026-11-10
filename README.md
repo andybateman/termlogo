@@ -5,7 +5,7 @@
 **Status:** Active
 **Dashboard:** [Web demo](web/index.html)
 **Start Date:** 2026-10-06
-**Last Updated:** 2026-11-10
+**Last Updated:** 2026-11-11
 **Repository:** https://github.com/andybateman/termlogo (public)
 -->
 

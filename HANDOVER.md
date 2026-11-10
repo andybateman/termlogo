@@ -1,9 +1,9 @@
 # Handover - Terminal Logo Turtle
 
-**As at:** 2026-10-07 (v1.2.0)
+**As at:** 2026-11-11 (v1.2.0)
 
 ## Purpose
-A Logo interpreter with turtle graphics that runs entirely in the terminal, using only the Python standard library. It follows UCBLogo by default, has a Terrapin colour mode for the colour tutorial, and can export a drawing as a 3D-printable stencil. `README.md` is the user guide; this file is the list of what is still to do and how to pick it up.
+A Logo interpreter with turtle graphics that runs entirely in the terminal, using only the Python standard library. It follows UCBLogo by default, has a Terrapin colour mode for the colour tutorial, and can export a drawing as a 3D-printable stencil. `.github/README.md` is the user guide (the root `README.md` is a minimal project summary); this file is the list of what is still to do and how to pick it up.
 
 ## Current state
 - Version 1.2.0, released on 2026-10-07 from the public GitHub repository `andybateman/termlogo`, with `termlogo.pyz` on the release page; the Homebrew formula installs it (checked with `brew upgrade` on the Mac). Since 1.1.0: the Python 3.10 and 3.11 recursion crash fix, review fixes (browser recursion limit, file streams, `PPS`), and the redesigned browser page, whose canvas fills the window. The live page at www.andybateman.com/termlogo/ is published from `main` and shows the version and commit it was built from.
